@@ -9,7 +9,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
  /**
   * @title Random number generator running on top of Chainlink.
-  * @author Ophelia Pavlova
   * @notice Calling requestRandomWords() triggers a request to Chainlink; after Chainlink calls fulfillRandomWords() callback,
   *         random result can be retrieved from getRandomNumber().
   * @dev    Random numbers from this contract are used by the LogFileHash contract to choose "winning" validators each day in the
@@ -20,8 +19,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 contract RandomNumberGenerator is VRFV2WrapperConsumerBase, AccessControl, ConfirmedOwner, IRNG {
     ITime private immutable _timeContract;
 
-    //Requests to RandomNumberGenerator are asyncronous and request data is stored in RequestStatus objects.
-    //"requestHistory" is [day/index]->RequestStatus mapping; "requests" is [Chainlink Request Id]->RequestStatus mapping
+    // Requests to RandomNumberGenerator are asynchronous and request data is stored in RequestStatus objects.
+    // "requestHistory" is [day/index]->RequestStatus mapping; "requests" is [Chainlink Request Id]->RequestStatus mapping
     mapping(uint => RequestStatus) requestHistory;
     mapping(uint256 => RequestStatus) requests;
     uint256 lastRequestId;
@@ -72,7 +71,7 @@ contract RandomNumberGenerator is VRFV2WrapperConsumerBase, AccessControl, Confi
 
     /// @notice Returns random number generated for "day"
     /// @param day Day to check
-    /// @return Random number generated for "day" (will fail if number has not been generated)
+    /// @return randNumber The random number generated for "day" (will fail if number has not been generated)
     function getRandomNumber(uint day) external view returns (uint256 randNumber) {
         require(requestHistory[day].fulfilled, "RandomNumber: Not generated the number yet");
 
@@ -95,10 +94,10 @@ contract RandomNumberGenerator is VRFV2WrapperConsumerBase, AccessControl, Confi
         emit RequesterGranted(requester);
     }
 
-    /// @notice　Request random number linked to key "day", where 0 <= randomNumber < maxNumber
+    /// @notice Request random number linked to key "day", where 0 <= randomNumber < maxNumber
     /// @param day The key to request, which is a 0-based day index (can only request 1 number per day)
     /// @param maxNumber Specifies the range of requested number (0 <= randomNumber < maxNumber)
-    /// @return The unique requestId received from Chainlink when making the request
+    /// @return requestId The unique request id received from Chainlink when making the request
     function requestRandomWords(uint day, uint256 maxNumber) external onlyRole(REQUESTER_ROLE) returns (uint256 requestId) {
         require(requestHistory[day].paid == 0, "RandomNumber: Today's request has been already paid");
 
@@ -145,7 +144,7 @@ contract RandomNumberGenerator is VRFV2WrapperConsumerBase, AccessControl, Confi
         requestHistory[requests[requestId].day].randomWords = randomNumber;
         requests[requestId].fulfilled = true;
         requests[requestId].randomWords = randomNumber;
-        
+
         emit RequestFulfilled(requestId, randomWords, requests[requestId].paid);
     }
 
