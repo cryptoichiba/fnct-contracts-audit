@@ -1,38 +1,4 @@
-## Overview
-
-This repository contains FNCT functionality smart contracts.
-
-Whitepaper: https://fnct-whitepaper.gitbook.io/en/
-
-### Staking
-
-FNCT's staking system.
-
-#### Background
-1) Financie stores transaction records in IPFS file storage ( https://ipfs.financie.jp )
-2) Every week, a hash of this data is generated (available from https://financie.jp/api/fnct/ipfs_upload_hash/[day_index] )
-3) The staking/validation system saves this hash to the Polygon chain
-4) Our goal is to make transactions in FiNANCiE auditable and immutable through the IPFS storage and the smart contract on the Polygon chain
-
-#### Flow
-1) "Validators" submit IPFS hashes to LogFileHash contract
-2) "Delegators" stake locked FNCT to ("vote for") these validators
-3) The hash with 50%+ voting power is deemed "correct" and saved to chain
-4) "Validators" get a commission, and separately a single winning validator is chosen each day;
-"Delegators" staked to this validator receive rewards
-
-#### Contracts
-- staking/Staking.sol: Handles locking & delegating (staking)
-- staking/LogFileHash.sol: Handle IPFS hash submission and "winner" determination
-- staking/Reward.sol: Reward pool and reward transfer management
-- staking/Validator.sol: Validator management
-- staking/Vault.sol: Locked FNCT management
-- staking/Time.sol: (Utility) Time management (Can set length of "day" in constructor for debug purposes)
-- staking/RNG.sol: (Utility) RNG management (Interfacing with Chainlink)
-
-## Test
-
-### Build environment
+# 環境構築
 ```shell
 nodenv local 14.16.1
 npm install
@@ -42,47 +8,47 @@ npm install
 touch .secret
 ```
 
-Save your wallet's private key phrase in .secret file.
+.secretに自分のウォレットの秘密鍵のフレーズをいれて保存する。
 
-### Compile Solidity
+# Solidityのコンパイル
 ```
 npx hardhat compile
 ```
 
-### Run the test
+# テストの実行
 ```
 npx hardhat test
 ```
 
-### Gas Report
+# Gas Report
 
-To output a report of gas usage when the test is run, set the environment variable `REPORT_GAS` and run the test.
+テスト実行時にガス使用量のレポートを出力する場合は環境変数 `REPORT_GAS` を設定して実行する。
 
 ```shell
 REPORT_GAS=1 npx hardhat test
 ```
 
-Note: The amount of gas used in the case of transferring ETH from A to B is `21,000`.
+参考: AさんからBさんにETHを送金する場合のガス使用量は `21,000` になる。
 
-Output `gasReporterOutput.json` with:
+`gasReporterOutput.json` を出力する方法。
 
 ```shell
 CI=true REPORT_GAS=1 npx hardhat test
 ```
 
-Once you have ``gasReporterOutput.json``, you can run the following script to check the contents.
+`gasReporterOutput.json` を出力すると次のスクリプトを実行して内容をチェックできる。
 
  * check_gas_report.js
-   * interpret ``gasReporterOutput.json`` and list methods and deployments that exceed the specified gas usage.
+   * gasReporterOutput.jsonを解釈して、指定したガス使用量を超えたメソッドやデプロイをリスト表示する。
  * list_gas_usage_of_method.js
-   * Interpret gasReporterOutput.json and list method information.
+   * gasReporterOutput.jsonを解釈して、メソッドの情報をリスト表示する。
  * list_gas_usage_of_deployment.js
-   * Interpret gasReporterOutput.json and list information of deployment.
+   * gasReporterOutput.jsonを解釈して、デプロイの情報をリスト表示する。
 
-Example usage of check_gas_report.js:
+check_gas_report.jsの使用例
 
 ```shell
-## Find one that uses more gas than expected
+## 想定以上のガスを使用するものを見つける
 $ node scripts/check_gas_report.js
 --------------------------------------------------
 List of methods that exceed gas usage: (gas-limit: 1000000)
@@ -95,7 +61,7 @@ List of deployments that exceed gas usage: (gas-limit: 2000000)
 (nothing)
 
 
-## You can specify a limit for gas usage (last column is avg of gas usage, previous column is max)
+## リミットのガス使用量を指定できる (最終列がガス使用量の avg, その前の列が max)
 $ node scripts/check_gas_report.js --method-limit-gas 21000 --deployment-limit-gas 50000
 --------------------------------------------------
 List of methods that exceed gas usage: (gas-limit: 21000)
@@ -116,10 +82,10 @@ ValidatorContract|502291|502291
 VaultContract|206996|206992
 ```
 
-Example usage of list_gas_usage_of_method.js and list_gas_usage_of_deployment.js:
+list_gas_usage_of_method.jsとlist_gas_usage_of_deployment.jsの使用例
 
-These two scripts basically just output the contents of `gasReporterOutput.json`.
-They are intended to be used in combination with a pipe on the command line.
+この2つのスクリプトは基本的に `gasReporterOutput.json` の内容を出力するだけです。
+コマンドラインでパイプを組み合わせて使用するのを想定しています。
 
 ```shell
 $ node scripts/list_gas_usage_of_method.js | uniq
@@ -133,7 +99,7 @@ StakingContract|addValidatorToWhiteList|addValidatorToWhiteList(address)|73361
 StakingContract|addValidatorToWhiteList|addValidatorToWhiteList(address)|73373
 StakingContract|addValidatorToWhiteList|addValidatorToWhiteList(address)|90473
 
-## Display gas usage in descending order
+## ガス使用量の降順で表示する
 $ node scripts/list_gas_usage_of_method.js | uniq | sort -k 4 -t '|' -r
 StakingContract|addValidatorToWhiteList|addValidatorToWhiteList(address)|90473
 StakingContract|addValidatorToWhiteList|addValidatorToWhiteList(address)|73373
@@ -146,6 +112,3 @@ RewardContract|addTokensToPool|addTokensToPool(uint256,uint256)|143502
 RewardContract|addTokensToPool|addTokensToPool(uint256,uint256)|115278
 ```
 
-## License
-
-FNCT contracts are distributed under MIT License.
