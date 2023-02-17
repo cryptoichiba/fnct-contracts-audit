@@ -3,6 +3,9 @@ pragma solidity ^0.8.16;
 
 import "../fixed_interfaces/IFixedReward.sol";
 
+/**
+ * @dev Interface of the Reward.
+ */
 interface IReward is IFixedReward {
     struct StakingRewardRecord {
         uint date;
@@ -56,15 +59,6 @@ interface IReward is IFixedReward {
         uint rewardAmount;
     }
 
-    // Events
-    event StakingTokenSupplyScheduled(uint daysAfterLaunch, uint256 amount, uint newBasePool);
-    event StakingTokenSupplyRecycled(uint daysAfterLaunch, uint targetDay, uint256 amount, uint newBasePool);
-    event CTHTokenSupplied(uint256 amount);
-    event TransferredStakingReward(address indexed sender, address indexed receiver, uint256 amount, uint256 accumulated);
-    event TransferredStakingCommission(address indexed validator, address indexed receiver, uint256 amount, uint256 accumulated);
-    event TransferredCTHReward(address indexed sender, address indexed receiver, uint256 amount, uint256 accumulated);
-    event TransferredRewards(address indexed sender, address indexed receiver, uint256 amount);
-
     // view functions
     function getStakingRewardData(address user) external view returns(StakingRewardRecord[] memory);
     function getStakingCommissionData(address user) external view returns(StakingCommissionRecord[] memory);
@@ -100,4 +94,49 @@ interface IReward is IFixedReward {
     function metaClaimCTHReward(CTHRewardTransferTicket calldata ticket) external returns(uint256);
     function metaClaimRewards(RewardTransferTickets calldata tickets) external returns(uint256);
     function metaClaimRewardsWithList(RewardTransferTickets[] calldata tickets) external returns(uint256);
+
+    // Events
+
+    /**
+     * @dev Emitted when `amount` of staking reward supply scheduled for `daysAfterLaunch` with `newBasePool` amount
+     * @note `daysAfterLaunch` is days since launch date
+     */
+    event StakingTokenSupplyScheduled(uint daysAfterLaunch, uint256 amount, uint newBasePool);
+
+    /**
+     * @dev Emitted when staking reward tokens allocated for `targetDay` are recycled back into the base pool.
+     *      This recycling could happen if no winner was chosen for `targetDay`, and thus no rewards were given.
+     *      `amount` is re-added back to the base pool on `daysAfterLaunch`, and new base pool value is `newBasePool`
+     * @note `daysAfterLaunch` and `targetDay` are days since launch date
+     */
+    event StakingTokenSupplyRecycled(uint daysAfterLaunch, uint targetDay, uint256 amount, uint newBasePool);
+
+    /**
+     * @dev Emitted when `amount` of CTH reward supply scheduled
+     * @note supplied immediately
+     */
+    event CTHTokenSupplied(uint256 amount);
+
+    /**
+     * @dev Emitted when `amount` of staking reward moved from the contract to `receiver` called by a `sender`
+     * @note accumulated: accumulated amount of transferred for the `sender`
+     */
+    event TransferredStakingReward(address indexed sender, address indexed receiver, uint256 amount, uint256 accumulated);
+
+    /**
+     * @dev Emitted when `amount` of staking commission moved from the contract to `receiver` for the `validator`
+     * @note accumulated: accumulated amount of transferred for the `validator`
+     */
+    event TransferredStakingCommission(address indexed validator, address indexed receiver, uint256 amount, uint256 accumulated);
+
+    /**
+     * @dev Emitted when `amount` of CTH reward moved from the contract to `receiver` called by a `sender`
+     * @note accumulated: accumulated amount of transferred for the `sender`
+     */
+    event TransferredCTHReward(address indexed sender, address indexed receiver, uint256 amount, uint256 accumulated);
+
+    /**
+     * @dev Emitted when `amount` of rewards moved from the contract to `receiver` called by a `sender`
+     */
+    event TransferredRewards(address indexed sender, address indexed receiver, uint256 amount);
 }
