@@ -57,5 +57,4 @@ interface IRNG {
      * @dev Emitted when Link token `balance` is withdrawn to owner
      */
     event LinkTokenWithdrawn(uint256 balance);
-
 }
