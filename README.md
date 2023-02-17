@@ -2,7 +2,7 @@
 
 This repository contains FNCT functionality smart contracts.
 
-(Currently the only public function is staking)
+Whitepaper: https://fnct-whitepaper.gitbook.io/en/
 
 ### Staking
 
@@ -11,7 +11,8 @@ FNCT's staking system.
 #### Background
 1) Financie stores transaction records in IPFS file storage ( https://ipfs.financie.jp )
 2) Every week, a hash of this data is generated (available from https://financie.jp/api/fnct/ipfs_upload_hash/[day_index] )
-3) Our goal is to save this "correct" hash to the Polygon chain
+3) The staking/validation system saves this hash to the Polygon chain
+4) Our goal is to make transactions in FiNANCiE auditable and immutable through the IPFS storage and the smart contract on the Polygon chain
 
 #### Flow
 1) "Validators" submit IPFS hashes to LogFileHash contract
