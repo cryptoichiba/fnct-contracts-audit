@@ -81,7 +81,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Returns the winner validator and/or winner status in the participant for a `day`.
+     * @dev Returns the winner validator, if one exists, and WinnerStatus for a `day`.
      */
     function getWinner(uint day) public view returns(address, WinnerStatus) {
         if ( _isDecidedWinner[day] ) {
