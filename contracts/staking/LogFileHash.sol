@@ -81,7 +81,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Returns the winner validator and/or winner status in the participant for a `day`.
+     * @dev Returns the winner validator, if one exists, and WinnerStatus for a `day`.
      */
     function getWinner(uint day) public view returns(address, WinnerStatus) {
         if ( _isDecidedWinner[day] ) {
@@ -253,7 +253,8 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
      * @note currentHash and nextHash can be empty when no latest file exists
      * @note `validator` can submit a file with `submitter` role account.
      *
-     * @notice 1. Record a file hash as a "Validation"
+     * @notice Internally, this does two things:
+     *         1. Record a file hash as a "Validation"
      *         2. Request a random seed for the validator selection in case of the first submitter in a day
      *
      * Emits a {HashSubmitted} event
