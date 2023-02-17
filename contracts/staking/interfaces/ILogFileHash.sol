@@ -25,8 +25,6 @@ enum WinnerStatus {
  * @dev Interface of the LogFileHash.
  */
 interface ILogFileHash {
-    event HashSubmitted(uint indexed today, uint indexed fileNum, address indexed validator, address sender, bytes hash, string key);
-
     struct ValidationRecord {
         uint day;
         uint fileNum;
@@ -72,4 +70,11 @@ interface ILogFileHash {
      * Emits a {HashSubmitted} event
      */
     function submit(address validator, uint currentFileNum, bytes calldata currentHash, bytes calldata nextHash) external;
+
+    /**
+     * @dev Emitted when the file `hash` of the `fileNum` file submitted by a `sender` for a `validator`
+     * @note `today` is days since launch date
+     * @note `key` is a combination of accepted file number and the file hash joined with '-'. example: '1-0123456789abcdef'
+     */
+    event HashSubmitted(uint indexed today, uint indexed fileNum, address indexed validator, address sender, bytes hash, string key);
 }
