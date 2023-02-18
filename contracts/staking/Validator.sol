@@ -27,6 +27,11 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         _;
     }
 
+    /**
+     * @notice Constructor
+     *
+     * @param timeContract_         Address of Time contract.
+     */
     constructor(address timeContract_) {
         require(timeContract_ != address(0x0), "Validator: TimeContract is zero address");
         _timeContract = ITime(timeContract_);
