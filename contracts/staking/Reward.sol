@@ -85,12 +85,12 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
     /**
      * @notice Constructor
      *
-     * @param timeContract_         Address of Time contract
-     * @param fnct_                 Address of FNCT contract
-     * @param stakingContract_      Address of StakingContract
-     * @param validatorContract_    Address of ValidatorContract
-     * @param vaultContract_        Address of VaultContract
-     * @param logFileHash_          Address of LogFileHash contract
+     * @param timeContract_         Address of Time contract.
+     * @param fnct_                 Address of FNCT contract.
+     * @param stakingContract_      Address of StakingContract.
+     * @param validatorContract_    Address of ValidatorContract.
+     * @param vaultContract_        Address of VaultContract.
+     * @param logFileHash_          Address of LogFileHash contract.
      */
     constructor(address timeContract_, address fnct_, address stakingContract_, address validatorContract_, address vaultContract_, address logFileHash_) {
         require(timeContract_ != address(0x0), "Reward: TimeContract is zero address");
@@ -111,7 +111,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
     }
 
     /**
-     * Returns base pool size of the daysAfterLaunch
+     * Returns base pool size of the daysAfterLaunch.
      */
     function _getBasePool(uint daysAfterLaunch) internal view returns(ScheduledRewards memory) {
         for ( uint i = 0; i < _scheduledRewards.length; i++ ) {
@@ -127,7 +127,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
     /**
      * @dev Returns the staking pool size of the `day`.
-     * @note `day` is days since launch date
+     * @note `day` is days since launch date.
      * Example;
      * Base Pool of Day1 = 100, daily allocation = 5%
      *   Day0: 0
@@ -194,8 +194,10 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
     /**
      * @dev Moves `amount` tokens from the caller and schedule to expand staking reward pool size on the `startDay`.
-     * @note Requires `amount` of tokens should be approved from the caller to this contract
-     * @note `startDay` is days since launch date
+     * @note Requires `amount` of tokens should be approved from the caller to this contract.
+     * @note `startDay` is days since launch date.
+     *
+     * Emit a {StakingTokenSupplyScheduled} event.
      */
     function supplyStakingPool(uint startDay, uint256 amount) override external onlyOwner {
         require(amount > 0, "Reward: Amount is zero");
@@ -210,8 +212,10 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
     /**
      * @dev Recycles staking reward pool tokens allocated on `targetDay` and schedules to reallocate the tokens on the `startDay`.
-     * @note Requires that no winner was chosen for `targetDay` immutably
-     * @note `startDay` and `targetDay` are days since launch date
+     * @note Requires that no winner was chosen for `targetDay` immutably.
+     * @note `startDay` and `targetDay` are days since launch date.
+     *
+     * Emits a {StakingTokenSupplyRecycled} event.
      */
     function recycleStakingPool(uint startDay, uint targetDay) override external onlyOwner {
         require(targetDay > 0, "Reward: You can't specify day in the past");
@@ -248,8 +252,10 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
     /**
      * @dev Moves `amount` tokens from the caller and expand CTH pool size immediately.
-     * @note Requires `amount` of tokens should be approved from the caller to this contract
-     * @note `startDay` is days since launch date
+     * @note Requires `amount` of tokens should be approved from the caller to this contract.
+     * @note `startDay` is days since launch date.
+     *
+     * Emits a {CTHTokenSupplied} event.
      */
     function supplyCTHPool(uint256 amount) override external onlyOwner {
         _cthPoolSize += amount;
@@ -336,7 +342,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
     /**
      * @dev Returns staking reward receipts of the `user` from `startDate` up to `nRecords`.
-     * @note `startDate` is a date since launch
+     * @note `startDate` is a date since launch.
      */
     function getStakingRewardAccrualHistory(
         address user, uint startDate, uint nRecords
@@ -368,7 +374,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
     /**
      * @dev Returns staking commission receipts of the `user` from `startDate` up to `nRecords`.
-     * @note `startDate` is a date since launch
+     * @note `startDate` is a date since launch.
      */
     function getStakingCommissionAccrualHistory(
         address user, uint startDate, uint nRecords
@@ -400,7 +406,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
     /**
      * @dev Returns the validation history of the `validator` from `startDate` up to `nRecords`.
-     * @note `startDate` is a date since launch
+     * @note `startDate` is a date since launch.
      */
     function getValidationHistory(
         address validator, uint startDay, uint nRecords
@@ -497,7 +503,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
     /**
      * @dev Moves staking reward tokens from this contract to the caller and returns received token amount.
-     * @note Receives multiple days reward at once up to the gasLimit
+     * @note Receives multiple days reward at once up to the gasLimit.
      */
     function claimStakingReward() override external returns(uint256) {
         return _transferStakingReward(msg.sender);
@@ -505,7 +511,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
     /**
      * @dev Moves staking commission tokens of the `validator` from this contract to the caller and returns received token amount.
-     * @note Receives multiple days reward at once up to the gasLimit
+     * @note Receives multiple days reward at once up to the gasLimit.
      */
     function claimStakingCommission(address validator) external returns(uint256) {
         require(_validatorContract.checkIfExist(validator), "Reward: Validator is not in the whitelist");
@@ -525,6 +531,8 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
     /**
      * @dev Moves staking and CTH reward tokens from this contract to the `ticket`.receiver and returns received token amount.
+     *
+     * Emits a {TransferredRewards} event.
      */
     function claimRewards(CTHRewardTransferTicket calldata ticket)
         isValidCTHRewardTicket(ticket)
@@ -540,7 +548,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
     /// meta Txs
 
     /**
-     * @dev Meta transaction for claimStakingReward with signed `ticket`
+     * @dev Meta transaction for claimStakingReward with signed `ticket`.
      */
     function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket)
         isValidStakingRewardTicket(ticket)
@@ -550,7 +558,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
     }
 
     /**
-     * @dev Meta transaction for claimCTHReward with signed `ticket`
+     * @dev Meta transaction for claimCTHReward with signed `ticket`.
      */
     function metaClaimCTHReward(CTHRewardTransferTicket calldata ticket)
         isValidCTHRewardTicket(ticket)
@@ -560,7 +568,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
     }
 
     /**
-     * @dev Meta transaction for claimRewards with signed `tickets`
+     * @dev Meta transaction for claimRewards with signed `tickets`.
      */
     function metaClaimRewards(RewardTransferTickets calldata tickets) override external returns(uint256) {
         return _transferRewards(tickets);
@@ -579,6 +587,10 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
     /// private functions
 
+    /**
+     * @dev Called from claimStakingReward and its meta transaction internally.
+     * Emits a {TransferredStakingReward} event.
+     */
     function _transferStakingReward(address receiver) internal returns(uint256) {
         if ( receiver == address(0) ) {
           return 0;
@@ -616,6 +628,10 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
         return availableReward;
     }
 
+    /**
+     * @dev Called from claimStakingCommission internally.
+     * Emits a {TransferredStakingCommission} event.
+     */
     function _transferStakingCommission(address validator, address receiver) internal returns(uint256) {
         uint today = _timeContract.getCurrentTimeIndex();
         uint256 availableCommission = 0;
@@ -647,6 +663,10 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
         return availableCommission;
     }
 
+    /**
+     * @dev Called from claimCTHReward and its meta transaction internally.
+     * Emits a {TransferredCTHReward} event.
+     */
     function _transferCTHReward(address receiver, uint256 accumulatedAmount) internal returns(uint256) {
         if ( receiver == address(0) || accumulatedAmount == 0 ) {
             return 0;
@@ -671,6 +691,10 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
         return availableReward;
     }
 
+    /**
+     * @dev Called from claimRewards and its meta transaction internally.
+     * Emits a {TransferredRewards} event.
+     */
     function _transferRewards(RewardTransferTickets calldata tickets)
         isValidStakingRewardTicket(tickets.ticketForStaking)
         isValidCTHRewardTicket(tickets.ticketForCTH)
