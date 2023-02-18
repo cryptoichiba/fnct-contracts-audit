@@ -59,7 +59,7 @@ interface IReward is IFixedReward {
         uint rewardAmount;
     }
 
-    // view functions
+    /// view functions
 
     /**
      * @dev Returns `user`'s staking reward receipts.
@@ -130,14 +130,14 @@ interface IReward is IFixedReward {
      */
     function getReceivedCTHRewardAmount(address user) external view returns(uint256);
 
-    // operator management
+    /// operator management
 
     /**
      * @dev Sets ticket signer for meta transactions to the `signer`.
      */
     function setTicketSigner(address signer) external;
 
-    // pool management
+    /// pool management
 
     /**
      * @dev Moves `amount` tokens from the caller and schedule to expand staking reward pool size on the `startDay`.
@@ -160,7 +160,7 @@ interface IReward is IFixedReward {
      */
     function supplyCTHPool(uint256 amount) external;
 
-    // self Txs
+    /// self Txs
 
     /**
      * @dev Moves staking reward tokens from this contract to the caller and returns received token amount.
@@ -184,7 +184,7 @@ interface IReward is IFixedReward {
      */
     function claimStakingCommission(address validator) external returns(uint256);
 
-    // meta Txs
+    /// meta Txs
 
     /**
      * @dev Meta transaction for claimStakingReward with signed `ticket`.
@@ -206,7 +206,7 @@ interface IReward is IFixedReward {
      */
     function metaClaimRewardsWithList(RewardTransferTickets[] calldata tickets) external returns(uint256);
 
-    // Events
+    /// Events
 
     /**
      * @dev Emitted when `amount` of staking reward supply scheduled for `daysAfterLaunch` with `newBasePool` amount.

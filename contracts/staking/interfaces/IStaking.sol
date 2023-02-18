@@ -70,6 +70,8 @@ interface IStaking is IFixedStaking {
      */
     function unlock(uint256 amount) external;
 
+    /// Events
+
     /**
      * @dev Emitted when `amount` of tokens locked by the `user` and changed validator selection from `oldValidator` to the `newValidator`.
      */

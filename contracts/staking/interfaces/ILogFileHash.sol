@@ -71,6 +71,8 @@ interface ILogFileHash {
      */
     function submit(address validator, uint currentFileNum, bytes calldata currentHash, bytes calldata nextHash) external;
 
+    /// Events
+
     /**
      * @dev Emitted when the file `hash` of the `fileNum` file submitted by a `sender` for a `validator`.
      * @note `today` is days since launch date.
