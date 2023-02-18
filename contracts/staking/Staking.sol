@@ -25,6 +25,13 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
     mapping(uint => mapping(address => uint)) _delegatedAmounts;
     address[] _users;
 
+    /**
+     * @notice Constructor
+     *
+     * @param timeContract_         Address of Time contract.
+     * @param vaultContract_        Address of VaultContract.
+     * @param validatorContract_    Address of ValidatorContract.
+     */
     constructor(address timeContract_, address vaultContract_, address validatorContract_) {
         require(timeContract_ != address(0x0), "Staking: TimeContract is zero address");
         require(vaultContract_ != address(0x0), "Staking: VaultContract is zero address");
@@ -35,6 +42,10 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
         _validatorContract = IValidator(validatorContract_);
     }
 
+    /**
+     * @dev Returns a validator which a `user` delegated to at the `day`.
+     * @note `day` is days since launch date.
+     */
     function getValidatorOfDay(uint day, address user) override external view returns (address) {
         if ( _validatorSelection[user].length <= 0 ) {
             return address(0);
@@ -52,6 +63,10 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
         return address(0);
     }
 
+    /**
+     * @dev Returns total delegated tokens to a `validator` at the `day`.
+     * @note `day` is days since launch date.
+     */
     function getTotalDelegatedTo(uint day, address validator) override public view returns (uint256) {
         for ( uint i = day; i >= 0 ; i-- ) {
             if ( _totalValidationPowerUpdated[validator][i] ) {
@@ -64,6 +79,11 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
         return 0;
     }
 
+    /**
+     * @dev Updates internal cache of total delegated amount.
+     * @note This function is designed to be idempotent.
+     * @note Basically this function should be called by the LogFileHash contract, but whoever can call it.
+     */
     function updateTotalDelegated(uint day, address validator) override external {
         if ( !_totalValidationPowerUpdated[validator][day] ) {
             _totalValidationPowerHistory[validator][day] = getTotalDelegatedTo(day, validator);
@@ -71,6 +91,10 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
         }
     }
 
+    /**
+     * @dev Returns all delegators who delegated to a `validator` at the `day`.
+     * @note `day` is days since launch date.
+     */
     function getDelegators(uint day, address validator) external view returns (address[] memory) {
         address[] memory _delegators = new address[](_users.length);
         uint count = 0;
@@ -92,39 +116,41 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
         return _trim(_delegators, count);
     }
 
-    /*
-        Returns amount of tokens specified user has locked.
-    */
+    /**
+     * @dev Returns current locked token amount of a `user`.
+     */
     function calcLock(address user) override external view returns (uint256) {
         return _vaultContract.calcLock(user);
     }
 
-    /*
-        Returns amount of tokens specified user can unlock.
-    */
+    /**
+     * @dev Returns current unlockable token amount of a `user`.
+     */
     function calcUnlockable(address user) override external view returns (uint256) {
         return _vaultContract.calcUnlockable(user);
     }
 
-    /*
-        Returns the last validator specified user delegated to.
-    */
+    /**
+     * @dev Returns current validator which a `user` delegates to.
+     */
     function getValidator(address user) override external view returns (address) {
         return _delegateValidator[user];
     }
 
-    /*
-        A user changed validator in the last 24 hours, then return False.
-    */
+    /**
+     * @dev Returns whether a `user` can change validator now or not.
+     */
     function canChangeValidator(address user) override public view returns (bool) {
         uint today = _timeContract.getCurrentTimeIndex();
         return !_isUser[user] || _lastDelegatedDay[user] < today;
     }
 
-    /*
-        Will lock specified amount of tokens from your wallet and delegate it to specidied validator.
-        Emits event with your wallet address, chosen new validator, empty address for an old validatir and amount sent.
-    */
+    /**
+     * @dev Move `amount` of tokens from the caller to the Vault contract and/or change validator selection.
+     * @note Requires `amount` of ERC20-approval from the caller to the Vault contract.
+     *
+     * Emits a {`LockedAndDelegated`} event.
+     */
     function lockAndDelegate(uint256 amount, address validator) override external {
         require(validator == address(0x0) || _validatorContract.checkIfExist(validator), "Staking: Validator is not in the whitelist");
         require(canChangeValidator(msg.sender) || _delegateValidator[msg.sender] == validator, "Staking: You can't change a validator on the same day");
@@ -163,6 +189,11 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
         emit LockedAndDelegated(msg.sender, validator, previousValidator, amount);
     }
 
+    /**
+     * @dev Move `amount` of tokens from the Vault contract to the caller.
+     *
+     * Emits an {Unlocked} event.
+     */
     function unlock(uint256 amount) override external {
         require(amount > 0, "Staking: Amount is zero");
 
