@@ -29,6 +29,15 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     mapping(uint => Winner) _decidedWinner;
     mapping(uint => bool) _isDecidedWinner;
 
+    /**
+     * @notice Constructor
+     *
+     * @param timeContract_         Address of Time contract
+     * @param stakingContract_      Address of StakingContract
+     * @param validatorContract_    Address of ValidatorContract
+     * @param rng_                  Address of RundomNumberGenerator contract
+     * @param preValidatedHash      Valid file hashes before launched
+     */
     constructor(
         address timeContract_,
         address stakingContract_,
