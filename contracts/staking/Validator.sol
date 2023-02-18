@@ -44,24 +44,39 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         }
     }
 
+    /**
+     * @dev Returns whether a `validator` is valid on the system or not.
+     */
     function checkIfExist(address validator) public view returns(bool) {
         return _validators[validator].id != address(0x0) && !_validators[validator].disabled;
     }
 
+    /**
+     * @dev Returns the submitter of a `validator`.
+     */
     function getSubmitter(address validator) public view returns(address) {
         return _submitter[validator];
     }
 
+    /**
+     * @dev Returns the commission receiver of a `validator`.
+     */
     function getCommissionReceiver(address validator) external view returns(address) {
         return _commissionReceiver[validator];
     }
 
+    /**
+     * @dev Returns the state of a `validator`.
+     */
     function getValidator(address validator) external view returns(Validator memory) {
         Validator memory output = _validators[validator];
         output.commission = getCommissionRate(validator);
         return output;
     }
 
+    /**
+     * @dev Returns all validators address.
+     */
     function getAllValidators() override external view returns(address[] memory) {
         address[] memory activeValidator = new address[](_validatorList.length);
         uint count = 0;
@@ -75,13 +90,16 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         return _trim(activeValidator, count);
     }
 
+    /**
+     * @dev Returns commission rate allowance range.
+     */
     function getCommissionRateRange() override external view returns(uint, uint) {
         return (minCommission, maxCommission);
     }
 
-    /*
-        Returns currect commission rate for a specified validator.
-    */
+    /**
+     * @dev Returns current commission rate of a `validator`.
+     */
     function getCommissionRate(address validator) override public view returns(uint) {
         if ( _commissionChangeRequests[validator].startDate > 0 &&
             _timeContract.getCurrentTimeIndex() > _commissionChangeRequests[validator].startDate ) {
@@ -90,9 +108,9 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         return _validators[validator].commission;
     }
 
-    /*
-        Returns specified date commission rate for a specified validator.
-    */
+    /**
+     * @dev Returns commission rate of a `validator` on the `day`.
+     */
     function getCommissionRateOfDay(uint day, address validator) override external view returns(uint) {
         if ( _cachedCommissionRate[validator][day] > 0 ) {
             return _cachedCommissionRate[validator][day];
@@ -113,6 +131,11 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         return _initialCommissionRate[validator];
     }
 
+    /**
+     * @dev Sets the commission rate allowance range from `min` to `max`.
+     *
+     * Emits a {CommissionRateRangeUpdated} event.
+     */
     function setCommissionRateRange(uint min, uint max) override onlyOwner external {
         require(max <= 990000, "Validator: Max commission rate should be equal or less than 99%");
         require(min <= max, "Validator: Max commission rate should be equal or less than min");
@@ -123,11 +146,11 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
     }
 
     /**
-    * Returns scheduled fee change request.
-    * @dev No reservation: Returns (0, 0)
-    * @dev A reservation exists but already applied: Returns (0, 0)
-    * @dev Valid reservation exists: Returns the reservation
-    */
+     * @dev Returns a commission rate schedule of a `validator`.
+     * @dev No reservation: Returns (0, 0)
+     * @dev A reservation exists but already applied: Returns (0, 0)
+     * @dev Valid reservation exists: Returns the (scheduled date, rate)
+     */
     function getScheduledCommissionRate(address validator) override external view returns (uint, uint) {
         if ( _commissionChangeRequests[validator].startDate > 0 &&
             _timeContract.getCurrentTimeIndex() <= _commissionChangeRequests[validator].startDate ) {
@@ -136,6 +159,11 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         return (0, 0);
     }
 
+    /**
+     * @dev Add a `validator` with manifest as `detail` and initial commission rate as `commissionRate`.
+     *
+     * Emits a {ValidatorAdded} event.
+     */
     function addValidator(address validator, bytes calldata detail, uint commissionRate) override external onlyOwner {
         require(validator != address(0x0), "Validator: Validator is zero address");
         require(!checkIfExist(validator), "Validator: Validator is already registered");
@@ -151,6 +179,11 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         emit ValidatorAdded(validator);
     }
 
+    /**
+     * @dev Enable a `validator`.
+     *
+     * Emits a {ValidatorEnabled} event.
+     */
     function enableValidator(address validator) override external onlyOwner {
         require(_validators[validator].id != address(0x0), "Validator: Validator is not registered");
         require(_validators[validator].disabled, "Validator: Validator had been already enabled");
@@ -160,6 +193,11 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         emit ValidatorEnabled(validator);
     }
 
+    /**
+     * @dev Disable a `validator`.
+     *
+     * Emits a {ValidatorDisabled} event.
+     */
     function disableValidator(address validator) override external onlyOwner {
         require(_validators[validator].id != address(0x0), "Validator: Validator is not registered");
         require(!_validators[validator].disabled, "Validator: Validator had been already disabled");
@@ -169,10 +207,11 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         emit ValidatorDisabled(validator);
     }
 
-    /*
-        Will update manifest for a specific validator using specified manifest hash.
-        Emits event with updated validator address and mainfest hash.
-    */
+    /**
+     * @dev Updates manifest to `detailHash`.
+     *
+     * Emits a {DetailUpdated} event.
+     */
     function updateDetail(bytes calldata detailHash) override public onlyValidator {
         require(checkHashChanged(detailHash), "Validator: DetailHash not changed");
 
@@ -180,10 +219,11 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         emit DetailUpdated(msg.sender, detailHash);
     }
 
-    /*
-        Will update delegation fee for a specific validator
-        Emits event with updated validator address and a new fee.
-    */
+    /**
+     * @dev Updates commission rate to `commissionRate`.
+     *
+     * Emits a {CommissionRateUpdated} event.
+     */
     function updateCommissionRate(uint commissionRate) override public onlyValidator {
         require(commissionRate >= minCommission && commissionRate <= maxCommission, "Validator: Commission rate is out of range");
         require(checkCommissionRateChanged(commissionRate), "Validator: Commission rate not changed");
@@ -201,6 +241,9 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         emit CommissionRateUpdated(msg.sender, availableAt, commissionRate);
     }
 
+    /**
+     * @dev Updates manifest to `detailHash` and commission rate to `commissionRate`.
+     */
     function updateValidator(uint commissionRate, bytes calldata detailHash) override external onlyValidator {
         if ( checkCommissionRateChanged(commissionRate) ) {
             updateCommissionRate(commissionRate);
@@ -210,16 +253,26 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         }
     }
 
+    /**
+     * @dev Sets a new `submitter`.
+     */
     function setSubmitter(address submitter) override external onlyValidator {
         require(submitter != address(0x0), "Validator: Submitter is zero address");
         _submitter[msg.sender] = submitter;
     }
 
+    /**
+     * @dev Sets a new commission receiver as `receiver`.
+     */
     function setCommissionReceiver(address receiver) override external onlyValidator {
         require(receiver != address(0x0), "Validator: Receiver is zero address");
         _commissionReceiver[msg.sender] = receiver;
     }
 
+    /**
+     * @dev Updates the cache of commission rate for a `validator` on the `day`
+     * @note Basically this function should be called by the LogFileHash contract, but whoever can call it.
+     */
     function updateCommissionRateCache(uint day, address validator) override external {
         if ( day >= _timeContract.getCurrentTimeIndex() && checkIfExist(validator) ) {
             _cachedCommissionRate[validator][day] = _getCommissionRateOfDay(day, validator);
