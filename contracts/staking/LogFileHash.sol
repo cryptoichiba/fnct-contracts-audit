@@ -32,11 +32,11 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     /**
      * @notice Constructor
      *
-     * @param timeContract_         Address of Time contract
-     * @param stakingContract_      Address of StakingContract
-     * @param validatorContract_    Address of ValidatorContract
-     * @param rng_                  Address of RundomNumberGenerator contract
-     * @param preValidatedHash      Valid file hashes before launched
+     * @param timeContract_         Address of Time contract.
+     * @param stakingContract_      Address of StakingContract.
+     * @param validatorContract_    Address of ValidatorContract.
+     * @param rng_                  Address of RundomNumberGenerator contract.
+     * @param preValidatedHash      Valid file hashes before launched.
      */
     constructor(
         address timeContract_,
@@ -129,8 +129,8 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Returns a immutable winner validator's address from the majority validators for a `day` according to the generated random number `pseudoRand`
-     * @note Winning probability is proportional to the delegated tokens amount
+     * @dev Returns a immutable winner validator's address from the majority validators for a `day` according to the generated random number `pseudoRand`.
+     * @note Winning probability is proportional to the delegated tokens amount.
      */
     function _getWinnerFromMajority(uint day, uint256 pseudoRand) internal view returns (address) {
         address winner = _majorityValidators[day][0];
@@ -179,7 +179,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Returns participant validators, numbers of validates for each file hash group, participant validators and file hashes for a day
+     * @dev Returns participant validators, numbers of validates for each file hash group, participant validators and file hashes for a day.
      */
     function _calcValidatorMaps(ValidationRecord[] memory records)
         internal pure returns(address[][] memory, uint[] memory, address[] memory, bytes[] memory) {
@@ -227,7 +227,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Returns the total voting power of majority file hash and the index of the majority file hash group from `validators` grouped by hash for a `day`
+     * @dev Returns the total voting power of majority file hash and the index of the majority file hash group from `validators` grouped by hash for a `day`.
      */
     function _getMajorPower(uint day, address[][] memory validators) view internal returns(uint256, uint256) {
         uint256 total = 0;
@@ -259,14 +259,14 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
 
     /**
      * @dev Submit current and next file hash as a `validator`.
-     * @note currentHash and nextHash can be empty when no latest file exists
+     * @note currentHash and nextHash can be empty when no latest file exists.
      * @note `validator` can submit a file with `submitter` role account.
      *
      * @notice Internally, this does two things:
-     *         1. Record a file hash as a "Validation"
-     *         2. Request a random seed for the validator selection in case of the first submitter in a day
+     *         1. Record a file hash as a "Validation".
+     *         2. Request a random seed for the validator selection in case of the first submitter in a day.
      *
-     * Emits a {HashSubmitted} event
+     * Emits a {HashSubmitted} event.
      */
     function submit(address validator, uint currentFileNum, bytes calldata currentHash, bytes calldata nextHash) override external {
         require(_validatorContract.checkIfExist(validator), "LogFileHash: Validator is not in the whitelist");
