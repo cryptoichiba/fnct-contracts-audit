@@ -29,6 +29,15 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     mapping(uint => Winner) _decidedWinner;
     mapping(uint => bool) _isDecidedWinner;
 
+    /**
+     * @notice Constructor
+     *
+     * @param timeContract_         Address of Time contract.
+     * @param stakingContract_      Address of StakingContract.
+     * @param validatorContract_    Address of ValidatorContract.
+     * @param rng_                  Address of RundomNumberGenerator contract.
+     * @param preValidatedHash      Valid file hashes before launched.
+     */
     constructor(
         address timeContract_,
         address stakingContract_,
@@ -49,6 +58,9 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
         _validFileHash = preValidatedHash;
     }
 
+    /**
+     * @notice Returns the latest valid file number and hash.
+     */
     function getLatestValidFile() override external view returns (uint, bytes memory) {
         require( _validFileHash.length > 0, "LogFileHash: No valid file yet" );
 
@@ -56,27 +68,36 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
         return (currentIndex, _validFileHash[currentIndex]);
     }
 
+    /**
+     * @notice Returns the file hash for a `fileNum`.
+     */
     function getValidFileHash(uint fileNum) override external view returns(bytes memory) {
         return _validFileHash[fileNum];
     }
 
+    /**
+     * @notice Returns the number of participant validators for a `day`.
+     */
     function getParticipatedValidators(uint day) override external view returns(address[] memory) {
         return _participatedValidators[day];
     }
 
+    /**
+     * @notice Returns the "majority" validators in the participant for a `day`.
+     */
     function getMajorityValidators(uint day) override external view returns(address[] memory) {
         return _majorityValidators[day];
     }
 
-    /*
-        Determine a validator that wins or won on specified day
-    */
+    /**
+     * @notice Returns the winner validator, if one exists, and WinnerStatus for a `day`.
+     */
     function getWinner(uint day) public view returns(address, WinnerStatus) {
         if ( _isDecidedWinner[day] ) {
             return (_decidedWinner[day].winner, _decidedWinner[day].status);
         }
 
-        // 今日以降の日付だったらwinner=0x0, status=invalid_未来はダメ的なの
+        // NoWinnerForFutureDate: for the future date
         if ( day >= _timeContract.getCurrentTimeIndex() ) {
             return (address(0), WinnerStatus.NoWinnerForFutureDate);
         }
@@ -86,7 +107,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
             return (address(0), WinnerStatus.NoSubmissionToday);
         }
 
-        // Pending winner: processing
+        // Pending winner: rng processing
         if ( !_rng.hadGeneratedNumber(day) ) {
             uint today = _timeContract.getCurrentTimeIndex();
             if ( today - day > _rng.abandonDaysAfterRequesting() ) {
@@ -107,7 +128,10 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
         return (_getWinnerFromMajority(day, pseudoRand), WinnerStatus.Decided);
     }
 
-    // majorityValidators[]の中から当選者を決定する。バリデータのDelegate量がそのまま当選確率になること
+    /**
+     * @notice Returns a immutable winner validator's address from the majority validators for a `day` according to the generated random number `pseudoRand`.
+     * @dev Winning probability is proportional to the delegated tokens amount.
+     */
     function _getWinnerFromMajority(uint day, uint256 pseudoRand) internal view returns (address) {
         address winner = _majorityValidators[day][0];
         uint pointer = 0;
@@ -122,6 +146,9 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
         return winner;
     }
 
+    /**
+     * @notice Returns the majority file hash, validators, participant validators and majority voting power for a `day`.
+     */
     function getMajority(uint day) public view returns (bytes memory, address[] memory, address[] memory, uint256) {
         if ( !_validationSubmitted[day] ) {
             bytes memory empty;
@@ -151,6 +178,9 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
         }
     }
 
+    /**
+     * @notice Returns participant validators, numbers of validates for each file hash group, participant validators and file hashes for a day.
+     */
     function _calcValidatorMaps(ValidationRecord[] memory records)
         internal pure returns(address[][] memory, uint[] memory, address[] memory, bytes[] memory) {
         string[] memory keys = new string[](records.length);
@@ -196,6 +226,9 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
         return(validators, validatorCounters, registered, hashes);
     }
 
+    /**
+     * @notice Returns the total voting power of majority file hash and the index of the majority file hash group from `validators` grouped by hash for a `day`.
+     */
     function _getMajorPower(uint day, address[][] memory validators) view internal returns(uint256, uint256) {
         uint256 total = 0;
         uint256 maxPower = 0;
@@ -225,12 +258,16 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-    * @notice
-    * 1. Record a "Validation"
-    * 2. Request a random seed for the validator selection
-    *
-    * @dev currentHash and nextHash can be empty when no latest file exists
-    */
+     * @notice Submit current and next file hash as a `validator`.
+     * @dev currentHash and nextHash can be empty when no latest file exists.
+     * @dev `validator` can submit a file with `submitter` role account.
+     *
+     * @notice Internally, this does two things:
+     *         1. Record a file hash as a "Validation".
+     *         2. Request a random seed for the validator selection in case of the first submitter in a day.
+     *
+     * Emits a {HashSubmitted} event.
+     */
     function submit(address validator, uint currentFileNum, bytes calldata currentHash, bytes calldata nextHash) override external {
         require(_validatorContract.checkIfExist(validator), "LogFileHash: Validator is not in the whitelist");
         require(_validatorContract.getSubmitter(validator) == msg.sender, "LogFileHash: Sender is allowed as a submitter");
@@ -296,6 +333,9 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
         emit HashSubmitted(today, _validFileHash.length, validator, msg.sender, hash, key);
     }
 
+    /**
+     * @notice Store the winner and status which had been decided for a day from day:0 to `today`.
+     */
     function updateWinner(uint today) internal {
         for ( uint day = 0; day < today; day++ ) {
             if ( !_isDecidedWinner[day] && _hadRequestedOrSkipped[day] ) {
