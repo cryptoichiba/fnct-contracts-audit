@@ -128,7 +128,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
     /**
      * @dev Returns the staking pool size of the `day`.
      * @note `day` is days since launch date.
-     * Example;
+     * Example:
      * Base Pool of Day1 = 100, daily allocation = 5%
      *   Day0: 0
      *   Day1: 100
