@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
  /**
   * @title Vault contract for locking and unlocking tokens.
   * @notice Contains addLock() & unlock() functionality plus associated view functions.
-  * @dev    This contract is used to lock tokens that are used in Staking contract.
+  * @dev This contract is used to lock tokens that are used in Staking contract.
   */
 contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
     ITime private immutable _timeContract;
@@ -27,9 +27,11 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
 
     bytes32 public constant STAKING_ROLE = keccak256("STAKING_ROLE");
 
-    /// @notice Constructor
-    /// @param timeContract_ Address of Time contract
-    /// @param token_ Address of token contract
+    /**
+     * @notice Constructor
+     * @param timeContract_ Address of Time contract
+     * @param token_ Address of token contract
+     */
     constructor(address timeContract_, address token_) {
         require(timeContract_ != address(0x0), "Vault: TimeContract is zero address");
         require(token_ != address(0x0), "Vault: Token is zero address");
