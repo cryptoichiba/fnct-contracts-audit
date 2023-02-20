@@ -74,7 +74,7 @@ interface ILogFileHash {
     /// Events
 
     /**
-     * @dev Emitted when the file `hash` of the `fileNum` file submitted by a `sender` for a `validator`.
+     * @dev Emitted when the file `hash` of the `fileNum` file is submitted by a `sender` for a `validator`.
      * @note `today` is days since launch date.
      * @note `key` is a combination of accepted file number and the file hash joined with '-'. example: '1-0123456789abcdef'.
      */
