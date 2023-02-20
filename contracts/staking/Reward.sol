@@ -111,7 +111,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
     }
 
     /**
-     * Returns base pool size of the daysAfterLaunch.
+     * Returns base pool size at a point in time (daysAfterLaunch).
      */
     function _getBasePool(uint daysAfterLaunch) internal view returns(ScheduledRewards memory) {
         for ( uint i = 0; i < _scheduledRewards.length; i++ ) {
