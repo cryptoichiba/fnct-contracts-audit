@@ -229,25 +229,25 @@ interface IReward is IFixedReward {
     event CTHTokenSupplied(uint256 amount);
 
     /**
-     * @dev Emitted when `amount` of staking reward moved from the contract to `receiver` called by a `sender`.
+     * @dev Emitted when `amount` of staking reward moved from the contract to `receiver`. `sender` is caller.
      * @note accumulated: accumulated amount of transferred for the `sender`.
      */
     event TransferredStakingReward(address indexed sender, address indexed receiver, uint256 amount, uint256 accumulated);
 
     /**
-     * @dev Emitted when `amount` of staking commission moved from the contract to `receiver` for the `validator`.
+     * @dev Emitted when `amount` of staking commission owed to `validator` is moved from the contract to `receiver`.
      * @note accumulated: accumulated amount of transferred for the `validator`.
      */
     event TransferredStakingCommission(address indexed validator, address indexed receiver, uint256 amount, uint256 accumulated);
 
     /**
-     * @dev Emitted when `amount` of CTH reward moved from the contract to `receiver` called by a `sender`.
+     * @dev Emitted when `amount` of CTH reward moved from the contract to `receiver`. `sender` is caller.
      * @note accumulated: accumulated amount of transferred for the `sender`.
      */
     event TransferredCTHReward(address indexed sender, address indexed receiver, uint256 amount, uint256 accumulated);
 
     /**
-     * @dev Emitted when `amount` of rewards moved from the contract to `receiver` called by a `sender`.
+     * @dev Emitted when `amount` of rewards moved from the contract to `receiver`. `sender` is caller.
      */
     event TransferredRewards(address indexed sender, address indexed receiver, uint256 amount);
 }
