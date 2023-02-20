@@ -43,8 +43,8 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
     }
 
     /**
-     * @dev Returns a validator which a `user` delegated to at the `day`.
-     * @note `day` is days since launch date.
+     * @notice Returns a validator which a `user` delegated to at the `day`.
+     * @dev `day` is days since launch date.
      */
     function getValidatorOfDay(uint day, address user) override external view returns (address) {
         if ( _validatorSelection[user].length <= 0 ) {
@@ -64,8 +64,8 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
     }
 
     /**
-     * @dev Returns total delegated tokens to a `validator` at the `day`.
-     * @note `day` is days since launch date.
+     * @notice Returns total delegated tokens to a `validator` at the `day`.
+     * @dev `day` is days since launch date.
      */
     function getTotalDelegatedTo(uint day, address validator) override public view returns (uint256) {
         for ( uint i = day; i >= 0 ; i-- ) {
@@ -80,9 +80,9 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
     }
 
     /**
-     * @dev Updates internal cache of total delegated amount.
-     * @note This function is designed to be idempotent.
-     * @note Basically this function should be called by the LogFileHash contract, but is callable by anyone.
+     * @notice Updates internal cache of total delegated amount.
+     * @dev This function is designed to be idempotent.
+     * @dev Basically this function should be called by the LogFileHash contract, but is callable by anyone.
      */
     function updateTotalDelegated(uint day, address validator) override external {
         if ( !_totalValidationPowerUpdated[validator][day] ) {
@@ -92,8 +92,8 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
     }
 
     /**
-     * @dev Returns all delegators who delegated to a `validator` at the `day`.
-     * @note `day` is days since launch date.
+     * @notice Returns all delegators who delegated to a `validator` at the `day`.
+     * @dev `day` is days since launch date.
      */
     function getDelegators(uint day, address validator) external view returns (address[] memory) {
         address[] memory _delegators = new address[](_users.length);
@@ -117,28 +117,28 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
     }
 
     /**
-     * @dev Returns current locked token amount of a `user`.
+     * @notice Returns current locked token amount of a `user`.
      */
     function calcLock(address user) override external view returns (uint256) {
         return _vaultContract.calcLock(user);
     }
 
     /**
-     * @dev Returns current unlockable token amount of a `user`.
+     * @notice Returns current unlockable token amount of a `user`.
      */
     function calcUnlockable(address user) override external view returns (uint256) {
         return _vaultContract.calcUnlockable(user);
     }
 
     /**
-     * @dev Returns current validator which a `user` delegates to.
+     * @notice Returns current validator which a `user` delegates to.
      */
     function getValidator(address user) override external view returns (address) {
         return _delegateValidator[user];
     }
 
     /**
-     * @dev Returns whether a `user` can change validator now or not.
+     * @notice Returns whether a `user` can change validator now or not.
      */
     function canChangeValidator(address user) override public view returns (bool) {
         uint today = _timeContract.getCurrentTimeIndex();
@@ -146,8 +146,8 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
     }
 
     /**
-     * @dev Move `amount` of tokens from the caller to the Vault contract and/or change validator selection.
-     * @note Requires `amount` of ERC20-approval from the caller to the Vault contract.
+     * @notice Move `amount` of tokens from the caller to the Vault contract and/or change validator selection.
+     * @dev Requires `amount` of ERC20-approval from the caller to the Vault contract.
      *
      * Emits a {`LockedAndDelegated`} event.
      */
@@ -190,7 +190,7 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
     }
 
     /**
-     * @dev Move `amount` of tokens from the Vault contract to the caller.
+     * @notice Move `amount` of tokens from the Vault contract to the caller.
      *
      * Emits an {Unlocked} event.
      */

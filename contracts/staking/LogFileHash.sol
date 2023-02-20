@@ -59,7 +59,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Returns the latest valid file number and hash.
+     * @notice Returns the latest valid file number and hash.
      */
     function getLatestValidFile() override external view returns (uint, bytes memory) {
         require( _validFileHash.length > 0, "LogFileHash: No valid file yet" );
@@ -69,28 +69,28 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Returns the file hash for a `fileNum`.
+     * @notice Returns the file hash for a `fileNum`.
      */
     function getValidFileHash(uint fileNum) override external view returns(bytes memory) {
         return _validFileHash[fileNum];
     }
 
     /**
-     * @dev Returns the number of participant validators for a `day`.
+     * @notice Returns the number of participant validators for a `day`.
      */
     function getParticipatedValidators(uint day) override external view returns(address[] memory) {
         return _participatedValidators[day];
     }
 
     /**
-     * @dev Returns the "majority" validators in the participant for a `day`.
+     * @notice Returns the "majority" validators in the participant for a `day`.
      */
     function getMajorityValidators(uint day) override external view returns(address[] memory) {
         return _majorityValidators[day];
     }
 
     /**
-     * @dev Returns the winner validator, if one exists, and WinnerStatus for a `day`.
+     * @notice Returns the winner validator, if one exists, and WinnerStatus for a `day`.
      */
     function getWinner(uint day) public view returns(address, WinnerStatus) {
         if ( _isDecidedWinner[day] ) {
@@ -129,8 +129,8 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Returns a immutable winner validator's address from the majority validators for a `day` according to the generated random number `pseudoRand`.
-     * @note Winning probability is proportional to the delegated tokens amount.
+     * @notice Returns a immutable winner validator's address from the majority validators for a `day` according to the generated random number `pseudoRand`.
+     * @dev Winning probability is proportional to the delegated tokens amount.
      */
     function _getWinnerFromMajority(uint day, uint256 pseudoRand) internal view returns (address) {
         address winner = _majorityValidators[day][0];
@@ -147,7 +147,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Returns the majority file hash, validators, participant validators and majority voting power for a `day`.
+     * @notice Returns the majority file hash, validators, participant validators and majority voting power for a `day`.
      */
     function getMajority(uint day) public view returns (bytes memory, address[] memory, address[] memory, uint256) {
         if ( !_validationSubmitted[day] ) {
@@ -179,7 +179,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Returns participant validators, numbers of validates for each file hash group, participant validators and file hashes for a day.
+     * @notice Returns participant validators, numbers of validates for each file hash group, participant validators and file hashes for a day.
      */
     function _calcValidatorMaps(ValidationRecord[] memory records)
         internal pure returns(address[][] memory, uint[] memory, address[] memory, bytes[] memory) {
@@ -227,7 +227,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Returns the total voting power of majority file hash and the index of the majority file hash group from `validators` grouped by hash for a `day`.
+     * @notice Returns the total voting power of majority file hash and the index of the majority file hash group from `validators` grouped by hash for a `day`.
      */
     function _getMajorPower(uint day, address[][] memory validators) view internal returns(uint256, uint256) {
         uint256 total = 0;
@@ -258,9 +258,9 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Submit current and next file hash as a `validator`.
-     * @note currentHash and nextHash can be empty when no latest file exists.
-     * @note `validator` can submit a file with `submitter` role account.
+     * @notice Submit current and next file hash as a `validator`.
+     * @dev currentHash and nextHash can be empty when no latest file exists.
+     * @dev `validator` can submit a file with `submitter` role account.
      *
      * @notice Internally, this does two things:
      *         1. Record a file hash as a "Validation".
@@ -334,7 +334,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
     }
 
     /**
-     * @dev Store the winner and status which had been decided for a day from day:0 to `today`.
+     * @notice Store the winner and status which had been decided for a day from day:0 to `today`.
      */
     function updateWinner(uint today) internal {
         for ( uint day = 0; day < today; day++ ) {

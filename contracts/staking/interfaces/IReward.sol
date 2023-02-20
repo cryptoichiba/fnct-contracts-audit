@@ -62,23 +62,23 @@ interface IReward is IFixedReward {
     /// view functions
 
     /**
-     * @dev Returns `user`'s staking reward receipts.
+     * @notice Returns `user`'s staking reward receipts.
      */
     function getStakingRewardData(address user) external view returns(StakingRewardRecord[] memory);
 
     /**
-     * @dev Returns `user`'s staking commission receipts.
+     * @notice Returns `user`'s staking commission receipts.
      */
     function getStakingCommissionData(address user) external view returns(StakingCommissionRecord[] memory);
 
     /**
-     * @dev Returns the staking pool size of the `day`.
-     * @note `day` is days since launch date.
+     * @notice Returns the staking pool size of the `day`.
+     * @dev `day` is days since launch date.
      */
     function getStakingPoolSize(uint day) external view returns(uint256);
 
     /**
-     * @dev Returns current CTH pool size.
+     * @notice Returns current CTH pool size.
      */
     function getCTHPoolSize() external view returns(uint256);
 
@@ -88,166 +88,166 @@ interface IReward is IFixedReward {
     function getDailyStakingRewardsAmount(uint daysAfterLaunch) external view returns(uint256);
 
     /**
-     * @dev Returns available staking reward amount of the `user`.
+     * @notice Returns available staking reward amount of the `user`.
      */
     function calcAvailableStakingRewardAmount(address user) external view returns(uint256);
 
     /**
-     * @dev Returns available staking commission amount of the `user`.
+     * @notice Returns available staking commission amount of the `user`.
      */
     function calcAvailableStakingCommissionAmount(address user) external view returns(uint256);
 
     /**
-     * @dev Returns staking reward receipts of the `user` from `startDate` up to `nRecords`.
-     * @note `startDate` is a date since launch.
+     * @notice Returns staking reward receipts of the `user` from `startDate` up to `nRecords`.
+     * @dev `startDate` is a date since launch.
      */
     function getStakingRewardAccrualHistory(address user, uint startDate, uint nRecords) external view returns(StakingRewardRecord[] memory);
 
     /**
-     * @dev Returns staking commission receipts of the `user` from `startDate` up to `nRecords`.
-     * @note `startDate` is a date since launch.
+     * @notice Returns staking commission receipts of the `user` from `startDate` up to `nRecords`.
+     * @dev `startDate` is a date since launch.
      */
     function getStakingCommissionAccrualHistory(address user, uint startDate, uint nRecords) external view returns(StakingCommissionRecord[] memory);
 
     /**
-     * @dev Returns the validation history of the `validator` from `startDate` up to `nRecords`.
-     * @note `startDate` is a date since launch.
+     * @notice Returns the validation history of the `validator` from `startDate` up to `nRecords`.
+     * @dev `startDate` is a date since launch.
      */
     function getValidationHistory(address validator, uint startDate, uint nRecords) external view returns(ValidationHistory[] memory);
 
     /**
-     * @dev Returns total received staking reward amount of the `user`.
+     * @notice Returns total received staking reward amount of the `user`.
      */
     function getReceivedStakingRewardAmount(address user) external view returns(uint256);
 
     /**
-     * @dev Returns total received staking commission amount of the `user`.
+     * @notice Returns total received staking commission amount of the `user`.
      */
     function getReceivedStakingCommissionAmount(address user) external view returns(uint256);
 
     /**
-     * @dev Returns total received CTH reward amount of the `user`.
+     * @notice Returns total received CTH reward amount of the `user`.
      */
     function getReceivedCTHRewardAmount(address user) external view returns(uint256);
 
     /// operator management
 
     /**
-     * @dev Sets ticket signer for meta transactions to the `signer`.
+     * @notice Sets ticket signer for meta transactions to the `signer`.
      */
     function setTicketSigner(address signer) external;
 
     /// pool management
 
     /**
-     * @dev Moves `amount` tokens from the caller and schedule to expand staking reward pool size on the `startDay`.
-     * @note Requires `amount` of tokens should be approved from the caller to this contract.
-     * @note `startDay` is days since launch date.
+     * @notice Moves `amount` tokens from the caller and schedule to expand staking reward pool size on the `startDay`.
+     * @dev Requires `amount` of tokens should be approved from the caller to this contract.
+     * @dev `startDay` is days since launch date.
      */
     function supplyStakingPool(uint startDay, uint256 amount) external;
 
     /**
-     * @dev Recycles staking reward pool tokens allocated on `targetDay` and schedules to reallocate the tokens on the `startDay`.
-     * @note Requires that no winner was chosen for `targetDay` immutably.
-     * @note `startDay` and `targetDay` are days since launch date.
+     * @notice Recycles staking reward pool tokens allocated on `targetDay` and schedules to reallocate the tokens on the `startDay`.
+     * @dev Requires that no winner was chosen for `targetDay` immutably.
+     * @dev `startDay` and `targetDay` are days since launch date.
      */
     function recycleStakingPool(uint startDay, uint targetDay) external;
 
     /**
-     * @dev Moves `amount` tokens from the caller and expand CTH pool size immediately.
-     * @note Requires `amount` of tokens should be approved from the caller to this contract.
-     * @note `startDay` is days since launch date.
+     * @notice Moves `amount` tokens from the caller and expand CTH pool size immediately.
+     * @dev Requires `amount` of tokens should be approved from the caller to this contract.
+     * @dev `startDay` is days since launch date.
      */
     function supplyCTHPool(uint256 amount) external;
 
     /// self Txs
 
     /**
-     * @dev Moves staking reward tokens from this contract to the caller and returns received token amount.
-     * @note Receives multiple days reward at once up to the gasLimit.
+     * @notice Moves staking reward tokens from this contract to the caller and returns received token amount.
+     * @dev Receives multiple days reward at once up to the gasLimit.
      */
     function claimStakingReward() external returns(uint256);
 
     /**
-     * @dev Moves CTH reward tokens from this contract to the `ticket`.receiver and returns received token amount.
+     * @notice Moves CTH reward tokens from this contract to the `ticket`.receiver and returns received token amount.
      */
     function claimCTHReward(CTHRewardTransferTicket calldata ticket) external returns(uint256);
 
     /**
-     * @dev Moves staking and CTH reward tokens from this contract to the `ticket`.receiver and returns received token amount.
+     * @notice Moves staking and CTH reward tokens from this contract to the `ticket`.receiver and returns received token amount.
      */
     function claimRewards(CTHRewardTransferTicket calldata ticket) external returns(uint256);
 
     /**
-     * @dev Moves staking commission tokens of the `validator` from this contract to the caller and returns received token amount.
-     * @note Receives multiple days reward at once up to the gasLimit.
+     * @notice Moves staking commission tokens of the `validator` from this contract to the caller and returns received token amount.
+     * @dev Receives multiple days reward at once up to the gasLimit.
      */
     function claimStakingCommission(address validator) external returns(uint256);
 
     /// meta Txs
 
     /**
-     * @dev Meta transaction for claimStakingReward with signed `ticket`.
+     * @notice Meta transaction for claimStakingReward with signed `ticket`.
      */
     function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket) external returns(uint256);
 
     /**
-     * @dev Meta transaction for claimCTHReward with signed `ticket`.
+     * @notice Meta transaction for claimCTHReward with signed `ticket`.
      */
     function metaClaimCTHReward(CTHRewardTransferTicket calldata ticket) external returns(uint256);
 
     /**
-     * @dev Meta transaction for claimRewards with signed `tickets`.
+     * @notice Meta transaction for claimRewards with signed `tickets`.
      */
     function metaClaimRewards(RewardTransferTickets calldata tickets) external returns(uint256);
 
     /**
-     * @dev Meta transaction of claimRewards for multiple users with signed `tickets` and returns total received token amount.
+     * @notice Meta transaction of claimRewards for multiple users with signed `tickets` and returns total received token amount.
      */
     function metaClaimRewardsWithList(RewardTransferTickets[] calldata tickets) external returns(uint256);
 
     /// Events
 
     /**
-     * @dev Emitted when `amount` of staking reward supply scheduled for `daysAfterLaunch` with `newBasePool` amount.
-     * @note `daysAfterLaunch` is days since launch date.
+     * @notice Emitted when `amount` of staking reward supply scheduled for `daysAfterLaunch` with `newBasePool` amount.
+     * @dev `daysAfterLaunch` is days since launch date.
      */
     event StakingTokenSupplyScheduled(uint daysAfterLaunch, uint256 amount, uint newBasePool);
 
     /**
-     * @dev Emitted when staking reward tokens allocated for `targetDay` are recycled back into the base pool.
+     * @notice Emitted when staking reward tokens allocated for `targetDay` are recycled back into the base pool.
      *      This recycling could happen if no winner was chosen for `targetDay`, and thus no rewards were given.
      *      `amount` is re-added back to the base pool on `daysAfterLaunch`, and new base pool value is `newBasePool`.
-     * @note `daysAfterLaunch` and `targetDay` are days since launch date.
+     * @dev `daysAfterLaunch` and `targetDay` are days since launch date.
      */
     event StakingTokenSupplyRecycled(uint daysAfterLaunch, uint targetDay, uint256 amount, uint newBasePool);
 
     /**
-     * @dev Emitted when `amount` of CTH reward supply scheduled.
-     * @note supplied immediately.
+     * @notice Emitted when `amount` of CTH reward supply scheduled.
+     * @dev supplied immediately.
      */
     event CTHTokenSupplied(uint256 amount);
 
     /**
-     * @dev Emitted when `amount` of staking reward moved from the contract to `receiver`. `sender` is caller.
-     * @note accumulated: accumulated amount of transferred for the `sender`.
+     * @notice Emitted when `amount` of staking reward moved from the contract to `receiver`. `sender` is caller.
+     * @dev accumulated: accumulated amount of transferred for the `sender`.
      */
     event TransferredStakingReward(address indexed sender, address indexed receiver, uint256 amount, uint256 accumulated);
 
     /**
-     * @dev Emitted when `amount` of staking commission owed to `validator` is moved from the contract to `receiver`.
-     * @note accumulated: accumulated amount of transferred for the `validator`.
+     * @notice Emitted when `amount` of staking commission owed to `validator` is moved from the contract to `receiver`.
+     * @dev accumulated: accumulated amount of transferred for the `validator`.
      */
     event TransferredStakingCommission(address indexed validator, address indexed receiver, uint256 amount, uint256 accumulated);
 
     /**
-     * @dev Emitted when `amount` of CTH reward moved from the contract to `receiver`. `sender` is caller.
-     * @note accumulated: accumulated amount of transferred for the `sender`.
+     * @notice Emitted when `amount` of CTH reward moved from the contract to `receiver`. `sender` is caller.
+     * @dev accumulated: accumulated amount of transferred for the `sender`.
      */
     event TransferredCTHReward(address indexed sender, address indexed receiver, uint256 amount, uint256 accumulated);
 
     /**
-     * @dev Emitted when `amount` of rewards moved from the contract to `receiver`. `sender` is caller.
+     * @notice Emitted when `amount` of rewards moved from the contract to `receiver`. `sender` is caller.
      */
     event TransferredRewards(address indexed sender, address indexed receiver, uint256 amount);
 }
