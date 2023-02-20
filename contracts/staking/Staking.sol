@@ -82,7 +82,7 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
     /**
      * @dev Updates internal cache of total delegated amount.
      * @note This function is designed to be idempotent.
-     * @note Basically this function should be called by the LogFileHash contract, but whoever can call it.
+     * @note Basically this function should be called by the LogFileHash contract, but is callable by anyone.
      */
     function updateTotalDelegated(uint day, address validator) override external {
         if ( !_totalValidationPowerUpdated[validator][day] ) {
