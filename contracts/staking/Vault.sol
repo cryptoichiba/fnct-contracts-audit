@@ -10,16 +10,26 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
+ /**
+  * @title Vault contract for locking and unlocking tokens.
+  * @notice Contains addLock() & unlock() functionality plus associated view functions.
+  * @dev    This contract is used to lock tokens that are used in Staking contract.
+  */
 contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
     ITime private immutable _timeContract;
     IERC20 private immutable _token;
 
+    // Lock and unlock histories
     mapping(address => Lock[]) _lockHistory;
     mapping(address => Unlock[]) _unlockHistory;
+    // Minimum holding period until locked tokens can be unlocked
     uint constant minimum_holding_period = 180;
 
     bytes32 public constant STAKING_ROLE = keccak256("STAKING_ROLE");
 
+    /// @notice Constructor
+    /// @param timeContract_ Address of Time contract
+    /// @param token_ Address of token contract
     constructor(address timeContract_, address token_) {
         require(timeContract_ != address(0x0), "Vault: TimeContract is zero address");
         require(token_ != address(0x0), "Vault: Token is zero address");
@@ -36,25 +46,32 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
     // Single user's lock/unlock amount
     //////////////////////////////////////////////////////////////////////////////
 
-    /*
-        Return total amount of tokens specified user has locked.
-    */
+    /**
+     * @notice Return total amount of tokens specified user has locked.
+     * @param user Specified user
+     * @return Num locked tokens
+     */
     function calcLock(address user) override external view returns (uint256) {
         uint today = _timeContract.getCurrentTimeIndex();
         return uint(int(_calcUserLock(today, user)) - int(_calcUserUnLock(today, user)));
     }
 
-    /*
-        Return total amount of tokens that specified user can unlock.
-    */
+    /**
+     * @notice Return total amount of tokens that specified user can unlock.
+     * @param user Specified user
+     * @return Num unlockable tokens
+     */
     function calcUnlockable(address user) override external view returns (uint256) {
         uint today = _timeContract.getCurrentTimeIndex();
         return _calcUserUnlockable(today, user);
     }
 
-    /*
-        Return total amount of tokens specified user has locked until specific day.
-    */
+    /**
+     * @notice Return total amount of tokens specified user has locked until specific day.
+     * @param day Specified day
+     * @param user Specified user
+     * @return Num currently locked tokens that will still be locked on day
+     */
     function calcLockOfDay(uint day, address user) override external view returns (uint256) {
         return uint(int(_calcUserLock(day, user)) - int(_calcUserUnLock(day, user)));
     }
@@ -102,6 +119,12 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
     // Multiple users' lock/unlock amount
     //////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * @notice Return total amount of tokens that all specified users (combined) have locked until specific day.
+     * @param day Specified day
+     * @param users Array of users
+     * @return Total amount of tokens that all specified users (combined) have locked until specific day.
+     */
     function calcUsersLock(uint day, address[] calldata users) override external view returns (uint256) {
         return uint256(int(_calcUsersLock(day, users)) - int(_calcUsersUnLock(day, users)));
     }
@@ -142,6 +165,11 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
     // Operation
     //////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * @notice Lock user tokens for at least `minimum_holding_period` days
+     * @param user Specified user
+     * @param amount Amount of tokens to lock
+     */
     function addLock(address user, uint256 amount)
         onlyRole(STAKING_ROLE)
         override external {
@@ -153,10 +181,12 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
         SafeERC20.safeTransferFrom(_token, user, address(this), amount);
     }
 
-    /*
-        If possible, will unlock specified amount of tokens from your account.
-        Emits event with your wallet address and chosen validator you unlocked from.
-    */
+    /**
+     * @notice If possible, will unlock specified amount of tokens from your account.
+     * @dev Emits event with your wallet address and chosen validator you unlocked from.
+     * @param user Specified user
+     * @param amount Amount of tokens to unlock
+     */
     function unlock(address user, uint256 amount)
         onlyRole(STAKING_ROLE)
         override external {
