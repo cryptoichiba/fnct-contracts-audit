@@ -276,7 +276,7 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
 
     /**
      * @dev Updates the cache of commission rate for a `validator` on the `day`
-     * @note Basically this function should be called by the LogFileHash contract, but whoever can call it.
+     * @note Basically this function should be called by the LogFileHash contract, but it's callable by anyone.
      */
     function updateCommissionRateCache(uint day, address validator) override external {
         if ( day >= _timeContract.getCurrentTimeIndex() && checkIfExist(validator) ) {
