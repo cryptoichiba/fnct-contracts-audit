@@ -1,6 +1,6 @@
 # FNCT Public Contracts
 
-## Audited contracts
+## Audited Contracts
 
 |Contents|Branch|Audit Report|Commit|
 |:--|:--|:--|:--|
