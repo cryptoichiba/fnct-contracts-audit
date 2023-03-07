@@ -199,6 +199,8 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
 
         uint today = _timeContract.getCurrentTimeIndex();
 
+        _validationPowerByDelegator[msg.sender] -= amount;
+
         address validator = _delegateValidator[msg.sender];
         if ( validator != address(0x0) ) {
             _validationPowerForValidator[validator] -= amount;
