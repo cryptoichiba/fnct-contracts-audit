@@ -7,9 +7,10 @@ import "./interfaces/IValidator.sol";
 import "./interfaces/ILogFileHash.sol";
 import "./interfaces/IRNG.sol";
 import "./utils/ArrayUtils.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract LogFileHash is ILogFileHash, ArrayUtils {
+contract LogFileHash is ILogFileHash, ArrayUtils, ReentrancyGuard {
     IStaking private immutable _stakingContract;
     IValidator private immutable _validatorContract;
     ITime private immutable _timeContract;
@@ -268,7 +269,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
      *
      * Emits a {HashSubmitted} event.
      */
-    function submit(address validator, uint currentFileNum, bytes calldata currentHash, bytes calldata nextHash) override external {
+    function submit(address validator, uint currentFileNum, bytes calldata currentHash, bytes calldata nextHash) override external nonReentrant {
         require(_validatorContract.checkIfExist(validator), "LogFileHash: Validator is not in the whitelist");
         require(_validatorContract.getSubmitter(validator) == msg.sender, "LogFileHash: Sender is allowed as a submitter");
 
@@ -277,7 +278,6 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
         uint today = _timeContract.getCurrentTimeIndex();
 
         bytes memory hash = currentHash;
-        bool requestRandom = false;
         uint majorityValidationPower;
         uint evalDay;
 
@@ -300,7 +300,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
                         hash = nextHash;
                     }
 
-                    requestRandom = true;
+                    _rng.requestRandomWords(evalDay, majorityValidationPower);
 
                     _majorityValidators[evalDay] = majorityValidators;
                     _participatedValidators[evalDay] = participatedValidators;
@@ -323,11 +323,6 @@ contract LogFileHash is ILogFileHash, ArrayUtils {
             _stakingContract.updateTotalDelegated(today - 1, validator);
             // Update validator commission rate cache to prepare for today's submission
             _validatorContract.updateCommissionRateCache(today, validator);
-        }
-
-        if ( requestRandom ) {
-            // Request here to prevent potential Re-entrancy issue
-            _rng.requestRandomWords(evalDay, majorityValidationPower);
         }
 
         emit HashSubmitted(today, _validFileHash.length, validator, msg.sender, hash, key);

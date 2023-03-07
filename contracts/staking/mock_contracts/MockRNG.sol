@@ -34,6 +34,7 @@ contract MockRandomNumberGenerator is IRNG {
 
     // Will request random number, where 0 <= randomNumber < maxNumber
     function requestRandomWords(uint day, uint256 maxNumber) external returns (uint256 requestId) {
+        require(!_requested[day], "RandomNumber: Today's request has been already paid");
         maxNumber;
         _requested[day] = true;
         return day;
