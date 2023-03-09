@@ -1,7 +1,14 @@
 const { ethers } = require('hardhat');
+const { BigNumber } = ethers;
 
 const MUMBAI_FNCT = '0xcc0A07053b7bfd69d72991Ad2e83c11f7838A9ad';
 const POLYGON_ICBT = '0x0f93119bdac9e80ca845e9a56ae027507cb24c6a';
+
+// Constants used in RNG Chainlink integration
+const POINT_ONE_LINK = BigNumber.from("100000000000000000") // 0.1 LINK
+const POINT_ZERO_ZERO_THREE_LINK = BigNumber.from("3000000000000000") // 0.003 LINK
+const ONE_HUNDRED_LINK = BigNumber.from("100000000000000000000") // 100 LINK
+const WEI_PER_UNIT_LINK = POINT_ZERO_ZERO_THREE_LINK
 
 const getDefaultDeployer = async () => {
   const [firstAccount] = await ethers.getSigners();
@@ -90,19 +97,58 @@ const deployStakingContract = async (
 
 const deployRNG = async (_TimeContract = null, useMock = false, _deployer = null) => {
   const deployer = _deployer || await getDefaultDeployer();
-  const TimeContract = _TimeContract || await deployTimeContract(5, useMock, deployer);
-  // Use RandomNumberGenerator only for qa / staging / proudction
-  // const contractName = useMock ? 'MockRandomNumberGenerator' : 'RandomNumberGenerator';
-  const contractName = 'MockRandomNumberGenerator';
-  const factory = await ethers.getContractFactory(contractName, deployer);
-  const RNG = await factory.deploy(
-      "0xb0897686c545045aFc77CF20eC7A532E3120E0F1", // Polygon Mainnet LINK token address
-      "0x4e42f0adEB69203ef7AaA4B7c414e5b1331c14dc",  // Polygon Mainnet LINK VRF wrapper address);
-      40
-  );
-  await RNG.deployed();
 
-  return RNG;
+  // If creating mock contracts, can immediately create and return
+  if (useMock) {
+    const rngFactory = await ethers.getContractFactory('MockRandomNumberGenerator', deployer);
+    const RNGContract = await rngFactory.deploy(
+        "0xb0897686c545045aFc77CF20eC7A532E3120E0F1", // Polygon Mainnet LINK token address (Mock ignores it though)
+        "0x4e42f0adEB69203ef7AaA4B7c414e5b1331c14dc",  // Polygon Mainnet LINK VRF wrapper address (Mock ignores it though)
+        40
+    );
+    await RNGContract.deployed();
+    return RNGContract;
+  }
+
+  // TimeContract creation (if needed)
+  const TimeContract = _TimeContract || await deployTimeContract(5, useMock, deployer);
+
+  // LinkToken creation
+  const linkFactory = await ethers.getContractFactory('LinkToken', deployer)
+  const LinkContract = await linkFactory.deploy()
+
+  // VRFCoordinatorV2Mock creation
+  const coordinatorFactory = await ethers.getContractFactory('VRFCoordinatorV2Mock', deployer)
+  const CoordinatorContract = await coordinatorFactory.deploy(POINT_ONE_LINK, 1e9) // 0.000000001 LINK per gas
+
+  // MockV3Aggregator creation
+  const linkEthFeedFactory = await ethers.getContractFactory("MockV3Aggregator", deployer)
+  const LinkEthFeedContract = await linkEthFeedFactory.deploy(18, WEI_PER_UNIT_LINK) // 1 LINK = 0.003 ETH
+
+  // VRFV2Wrapper creation
+  const wrapperFactory = await ethers.getContractFactory("VRFV2Wrapper", deployer)
+  const WrapperContract = await wrapperFactory.deploy(LinkContract.address,
+      LinkEthFeedContract.address, CoordinatorContract.address);
+
+  // RandomNumberGenerator creation
+  const rngFactory = await ethers.getContractFactory('RandomNumberGenerator', deployer);
+  const RNGContract = await rngFactory.deploy(LinkContract.address, WrapperContract.address, 30, TimeContract.address);
+  await RNGContract.deployed();
+
+  // Fund RandomNumberGenerator with Link
+  const fund = async (link, linkOwner, receiver, amount) => {
+    await link.connect(linkOwner).transfer(receiver, amount)
+  }
+  await fund(LinkContract, deployer, RNGContract.address, ONE_HUNDRED_LINK)
+
+  // For whatever reason, VRFCoordinatorV2Mock::fufillRandomWords also a subscription funded with Link, even though
+  // test is using direct funding.  (Source code seems to confirm this - there doesn't seem to be any
+  // direct funding pathway or alternate function - and Chainlink direct funding unit test example is indeed funding
+  // a subscription)
+  // Note: "1" is the wrapper's subscription id
+  await CoordinatorContract.connect(deployer).fundSubscription(1, ONE_HUNDRED_LINK)
+
+  return RNGContract;
 };
 
 const deployLogFileHash = async(
