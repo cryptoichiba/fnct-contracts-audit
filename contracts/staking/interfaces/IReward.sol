@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
+import "./ILogFileHash.sol";
 import "../fixed_interfaces/IFixedReward.sol";
 
 /**
@@ -56,7 +57,8 @@ interface IReward is IFixedReward {
         bool isJoined;
         bool isValid;
         bool isElected;
-        uint rewardAmount;
+        uint dailyBudget;
+        uint commissionAmount;
     }
 
     /// view functions
@@ -91,6 +93,11 @@ interface IReward is IFixedReward {
      * @notice Returns available staking reward amount of the `user`.
      */
     function calcAvailableStakingRewardAmount(address user) external view returns(uint256);
+
+    /**
+     * @notice Returns available staking reward and winner status of the `user` on the `day`.
+     */
+    function calcAvailableStakingRewardAmountOfDay(uint day, address user) external view returns(StakingRewardRecord memory, WinnerStatus);
 
     /**
      * @notice Returns available staking commission amount of the `user`.
@@ -189,7 +196,7 @@ interface IReward is IFixedReward {
     /**
      * @notice Meta transaction for claimStakingReward with signed `ticket`.
      */
-    function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket) external returns(uint256);
+    function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket, uint limitDays) external returns(uint256);
 
     /**
      * @notice Meta transaction for claimCTHReward with signed `ticket`.
@@ -199,12 +206,12 @@ interface IReward is IFixedReward {
     /**
      * @notice Meta transaction for claimRewards with signed `tickets`.
      */
-    function metaClaimRewards(RewardTransferTickets calldata tickets) external returns(uint256);
+    function metaClaimRewards(RewardTransferTickets calldata tickets, uint limitDays) external returns(uint256);
 
     /**
      * @notice Meta transaction of claimRewards for multiple users with signed `tickets` and returns total received token amount.
      */
-    function metaClaimRewardsWithList(RewardTransferTickets[] calldata tickets) external returns(uint256);
+    function metaClaimRewardsWithList(RewardTransferTickets[] calldata tickets, uint limitDays) external returns(uint256);
 
     /// Events
 

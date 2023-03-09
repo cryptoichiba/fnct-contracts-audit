@@ -286,6 +286,12 @@ describe('RewardContract', (_) => {
       const result = await _RewardContract.getValidationHistory(validator1.address, 5, nRecords);
       expect(result.length).to.equal(nRecords);
       expect(result[0].validationDate).to.equal(5);
+      expect(result[0].isJoined).to.equal(true);
+      expect(result[0].isValid).to.equal(true);
+      expect(result[0].isElected).to.equal(true);
+      expect(result[0].dailyBudget).to.equal(ethers.BigNumber.from("16963608060942908303"));
+      expect(result[0].commissionAmount).to.equal(ethers.BigNumber.from("1696360806094290830"));
+
       expect(result[1].validationDate).to.equal(4);
       expect(result[2].validationDate).to.equal(3);
       expect(result[3].validationDate).to.equal(2);
@@ -392,11 +398,11 @@ describe('RewardContract', (_) => {
       expect(result[3].isElected).to.equal(true);
       expect(result[4].isElected).to.equal(true);
 
-      expect(result[0].rewardAmount).not.to.equal('0');
-      expect(result[1].rewardAmount).to.equal('0');
-      expect(result[2].rewardAmount).to.equal('0');
-      expect(result[3].rewardAmount).not.to.equal('0');
-      expect(result[4].rewardAmount).not.to.equal('0');
+      expect(result[0].dailyBudget).not.to.equal('0');
+      expect(result[1].dailyBudget).to.equal('0');
+      expect(result[2].dailyBudget).to.equal('0');
+      expect(result[3].dailyBudget).not.to.equal('0');
+      expect(result[4].dailyBudget).not.to.equal('0');
     })
 
     it('If the number of records to be taken is less than nRecords, take as many as you can.', async () => {

@@ -9,6 +9,7 @@ const {
   ZeroStakingRewardTransferTicket,
 } = require("./support/ticket");
 const {deployAll} = require('./support/deploy');
+const {constants} = require("@openzeppelin/test-helpers");
 
 describe("Meta Transaction: Day0", function () {
     let _TimeContract, _FNCToken, _ValidatorContract, _VaultContract, _StakingContract, _LogFileHash, _RNG,
@@ -99,7 +100,7 @@ describe("Meta Transaction: Day0", function () {
             const valid_ticket = await createStakingRewardTransferTicket(delegator1, 0);
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(valid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(valid_ticket, 45)
             ).not.to.be.reverted
 
             // After token balance
@@ -161,7 +162,7 @@ describe("Meta Transaction: Day0", function () {
             const invalid_ticket = await createStakingRewardTransferTicket(delegator1, wrongAmount);
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket, 45)
             ).not.to.be.reverted
             expect(await _FNCToken.balanceOf(delegator1.address)).not.to.equal(wrongAmount);
             expect(await _FNCToken.balanceOf(delegator1.address)).to.equal(expected);
@@ -172,7 +173,7 @@ describe("Meta Transaction: Day0", function () {
             const invalid_ticket = await createStakingRewardTransferTicket(nobody, 0);
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket, 45)
             ).not.to.be.reverted
             expect(await _FNCToken.balanceOf(nobody.address)).to.equal(0);
             expect(await _FNCToken.balanceOf(delegator1.address)).to.equal(0);
@@ -183,7 +184,7 @@ describe("Meta Transaction: Day0", function () {
             const invalid_ticket = await createStakingRewardTransferTicket(delegator1, 0, nobody);
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket, 45)
             ).to.be.revertedWith('Reward: Invalid head signer');
         });
 
@@ -196,7 +197,7 @@ describe("Meta Transaction: Day0", function () {
             invalid_ticket.ticketSigner = otherInstantSigner.address;
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket, 45)
             ).to.be.revertedWith('Reward: Invalid body signer');
         });
 
@@ -211,7 +212,7 @@ describe("Meta Transaction: Day0", function () {
             invalid_ticket.metaSignature = falsifiedMetaSignature;
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket, 45)
             ).to.be.revertedWith('Reward: Invalid head signer');
         });
 
@@ -226,7 +227,7 @@ describe("Meta Transaction: Day0", function () {
             invalid_ticket.bodySignature = falsifiedBodySignature;
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket, 45)
             ).to.be.revertedWith('Reward: Invalid body signer');
         });
 
@@ -241,9 +242,9 @@ describe("Meta Transaction: Day0", function () {
 
             await expect(
                 _RewardContract.connect(worker).metaClaimRewards({
-                  ticketForStaking,
-                  ticketForCTH
-                })
+                    ticketForStaking,
+                    ticketForCTH
+                }, 45)
             ).not.to.be.reverted
 
             // After token balance
@@ -261,9 +262,9 @@ describe("Meta Transaction: Day0", function () {
 
             await expect(
                 _RewardContract.connect(worker).metaClaimRewards({
-                  ticketForStaking,
-                  ticketForCTH
-                })
+                    ticketForStaking,
+                    ticketForCTH
+                }, 45)
             ).to.be.revertedWith('Reward: Invalid receiver');
 
             // After token balance
@@ -295,12 +296,79 @@ describe("Meta Transaction: Day0", function () {
                   { ticketForStaking: ticketForStaking1, ticketForCTH: ticketForCTH1 },
                   { ticketForStaking: ticketForStaking2, ticketForCTH: ticketForCTH2 },
                   { ticketForStaking: ticketForStaking3, ticketForCTH: ticketForCTH3 },
-                ])
+                ], 45)
             ).not.to.be.reverted
 
             expect(await _FNCToken.balanceOf(delegator1.address)).to.equal(expectedStaking1.add(expectedCTH1));
             expect(await _FNCToken.balanceOf(delegator2.address)).to.equal(expectedStaking2);
             expect(await _FNCToken.balanceOf(delegator3.address)).to.equal(expectedCTH3);
+        });
+
+        it('Exploit: #2/QSP-5 Denial of Service on Ticket System / CTH', async () => {
+            // dailyReward * (myLock / totalLock) * (100% - commissionRate);
+            // 17080 * 2000 / 7000 * 90% = 4392 tokens
+            const expectedStaking = ethers.utils.parseUnits("4392");
+            const expectedCTH = ethers.utils.parseUnits("500");
+
+            const ticketForStaking = await createStakingRewardTransferTicket(delegator1, 0);
+            const ticketForCTH = await createCTHRewardTransferTicket(delegator1, expectedCTH);
+            const zeroTicketForStaking = {...ZeroStakingRewardTransferTicket, ...{ amount: 0 }};
+
+            // QSP-5 prevent receiving by other delegator
+            ticketForCTH.receiver = constants.ZERO_ADDRESS;
+            await expect(
+              _RewardContract.connect(nobody).metaClaimRewards({
+                  ticketForStaking: zeroTicketForStaking,
+                  ticketForCTH: ticketForCTH
+              }, 45)
+            ).not.to.be.reverted
+
+            // QSP-5
+            ticketForCTH.receiver = delegator1.address
+            await expect(
+              _RewardContract.connect(worker).metaClaimRewards({
+                  ticketForStaking: ticketForStaking,
+                  ticketForCTH: ticketForCTH
+              }, 45)
+            ).not.to.be.reverted
+
+            // After token balance
+            expect(await _FNCToken.balanceOf(delegator1.address)).to.equal(expectedStaking.add(expectedCTH));
+        });
+
+        it('Exploit: #2/QSP-5 Denial of Service on Ticket System / Staking', async () => {
+            // dailyReward * (myLock / totalLock) * (100% - commissionRate);
+            // 17080 * 2000 / 7000 * 90% = 4392 tokens
+            const expectedStaking = ethers.utils.parseUnits("4392");
+            const expectedCTH = ethers.utils.parseUnits("500");
+
+            const ticketForStaking = await createStakingRewardTransferTicket(delegator1, 0);
+            const ticketForCTH = await createCTHRewardTransferTicket(delegator1, expectedCTH);
+            const zeroTicketForCTH = {...ZeroCTHRewardTransferTicket, ...{ accumulatedAmount: 0 }};
+
+            console.log(ticketForCTH);
+            console.log(zeroTicketForCTH);
+
+            // QSP-5 prevent receiving by other delegator
+            ticketForStaking.receiver = constants.ZERO_ADDRESS;
+            await expect(
+              _RewardContract.connect(nobody).metaClaimRewards({
+                  ticketForStaking: ticketForStaking,
+                  ticketForCTH: zeroTicketForCTH
+              }, 45)
+            ).not.to.be.reverted
+
+            // QSP-5
+            ticketForStaking.receiver = delegator1.address
+            await expect(
+              _RewardContract.connect(worker).metaClaimRewards({
+                  ticketForStaking: ticketForStaking,
+                  ticketForCTH: ticketForCTH
+              }, 45)
+            ).not.to.be.reverted
+
+            // After token balance
+            expect(await _FNCToken.balanceOf(delegator1.address)).to.equal(expectedStaking.add(expectedCTH));
         });
     });
 });

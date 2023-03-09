@@ -9,11 +9,12 @@ contract MockLogFileHash is ILogFileHash {
     mapping(uint => address[]) private _participatedValidators;
     mapping(uint => address[]) private _majorityValidators;
 
-    constructor(address timeContract_, address stakingContract_, address validatorContract_,  address rng_) {
+    constructor(address timeContract_, address stakingContract_, address validatorContract_,  address rng_, bytes[] memory preValidatedHash) {
         timeContract_;
         stakingContract_;
         validatorContract_;
         rng_;
+        preValidatedHash;
     }
 
     function getLatestValidFile() override external pure returns (uint, bytes memory) {

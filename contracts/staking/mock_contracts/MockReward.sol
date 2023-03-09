@@ -49,6 +49,13 @@ contract MockRewardContract is IReward, Ownable, TicketUtils {
         return 2234 ether * 5 / 100;
     }
 
+    function calcAvailableStakingRewardAmountOfDay(uint day, address user) public view returns(StakingRewardRecord memory, WinnerStatus) {
+        day; user;
+
+        address validator = 0x0957b455E9f3B32bF75aC68d05FdEf151e192779;
+        return (StakingRewardRecord(4, 31 ether, 2 ether, validator), WinnerStatus.Decided);
+    }
+
     function calcAvailableStakingRewardAmount(address user) override external pure returns(uint) {
         user;
         return 2234 ether;
@@ -96,10 +103,10 @@ contract MockRewardContract is IReward, Ownable, TicketUtils {
         validator; startDate; nRecords;
 
         ValidationHistory[] memory output = new ValidationHistory[](4);
-        output[0] = ValidationHistory(4, true, true, true, 30 * 10 ** 18);
-        output[1] = ValidationHistory(3, true, true, false, 10 * 10 ** 18);
-        output[2] = ValidationHistory(2, true, false, false, 20 * 10 ** 18);
-        output[3] = ValidationHistory(1, false, false, false, 0);
+        output[0] = ValidationHistory(4, true, true, true, 30 * 10 ** 18, 6 * 10 ** 18);
+        output[1] = ValidationHistory(3, true, true, false, 10 * 10 ** 18, 2 * 10 ** 18);
+        output[2] = ValidationHistory(2, true, false, false, 20 * 10 ** 18, 4 * 10 ** 18);
+        output[3] = ValidationHistory(1, false, false, false, 0, 0);
 
         return output;
     }
@@ -169,7 +176,8 @@ contract MockRewardContract is IReward, Ownable, TicketUtils {
     * meta Txs
     **********************************************************************************************************/
 
-    function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket) override external returns(uint) {
+    function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket, uint limitDays) override external returns(uint) {
+        limitDays;
         return _transferStakingReward(ticket.receiver);
     }
 
@@ -177,12 +185,15 @@ contract MockRewardContract is IReward, Ownable, TicketUtils {
         return _transferCTHReward(ticket.receiver, ticket.accumulatedAmount);
     }
 
-    function metaClaimRewards(RewardTransferTickets calldata tickets) override external returns(uint) {
+    function metaClaimRewards(RewardTransferTickets calldata tickets, uint limitDays) override external returns(uint) {
         require(tickets.ticketForStaking.receiver == tickets.ticketForCTH.receiver);
+        limitDays;
         return _transferRewards(tickets.ticketForCTH.receiver, tickets.ticketForCTH.accumulatedAmount);
     }
 
-    function metaClaimRewardsWithList(RewardTransferTickets[] calldata ticketsList) override external returns(uint) {
+    function metaClaimRewardsWithList(RewardTransferTickets[] calldata ticketsList, uint limitDays) override external returns(uint) {
+        limitDays;
+
         uint transferredAmount = 0;
         for ( uint i = 0; i < ticketsList.length; i++ ) {
             transferredAmount += _transferRewards(ticketsList[i].ticketForCTH.receiver, ticketsList[i].ticketForCTH.accumulatedAmount);

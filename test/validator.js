@@ -268,6 +268,64 @@ describe("Validator", function () {
                 await _ValidatorContract.checkIfExist(validator1.address)
             ).to.equal(true);
         });
+
+        it("Repro: Broken cachedSubmissionRate", async function() {
+            await _TimeContract.setCurrentTimeIndex(1);
+
+            // Initial value
+            result = await _ValidatorContract.getCommissionRateOfDay(1, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(100000));
+
+            await expect(
+              _ValidatorContract.connect(validator1).updateValidator(50000, "0x01")
+            ).not.to.be.reverted;
+
+            await _TimeContract.setCurrentTimeIndex(10);
+
+            // Updated
+            result = await _ValidatorContract.getCommissionRateOfDay(10, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(50000));
+
+            await expect(
+              _ValidatorContract.connect(validator1).updateValidator(150000, "0x01")
+            ).not.to.be.reverted;
+
+            await _TimeContract.setCurrentTimeIndex(15);
+
+            // Scheduled but not available yet
+            result = await _ValidatorContract.getCommissionRateOfDay(15, validator1.address)
+            // await expect(result).to.equal(ethers.BigNumber.from(100000)); // Under the #2/QSP-4 repro code
+            await expect(result).to.equal(ethers.BigNumber.from(50000));
+        });
+
+        it("Repro: Broken cachedSubmissionRate", async function() {
+            await _TimeContract.setCurrentTimeIndex(1);
+
+            // Initial value
+            result = await _ValidatorContract.getCommissionRateOfDay(1, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(100000));
+
+            await expect(
+              _ValidatorContract.connect(validator1).updateCommissionRate(50000)
+            ).not.to.be.reverted;
+
+            await _TimeContract.setCurrentTimeIndex(10);
+
+            // Updated
+            result = await _ValidatorContract.getCommissionRateOfDay(10, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(50000));
+
+            await expect(
+              _ValidatorContract.connect(validator1).updateCommissionRate(150000)
+            ).not.to.be.reverted;
+
+            await _TimeContract.setCurrentTimeIndex(15);
+
+            // Scheduled but not available yet
+            result = await _ValidatorContract.getCommissionRateOfDay(15, validator1.address)
+            // await expect(result).to.equal(ethers.BigNumber.from(100000)); // Under the #2/QSP-4 repro code
+            await expect(result).to.equal(ethers.BigNumber.from(50000));
+        });
     });
 
     describe("Manage disabled validator", async () => {

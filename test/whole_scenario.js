@@ -782,7 +782,7 @@ describe("Whole scenario with prod contract: Day0", function () {
                                 it("Fail: Unlock tokens more than they locked", async function () {
                                     await expect (
                                         _StakingContract.connect(delegator1).unlock(vp3).then(tx => tx.wait())
-                                    ).to.be.revertedWith('Vault: Requested amount exceeds unlockable');
+                                    ).to.be.revertedWith('Staking: Requested amount exceeds unlockable');
                                 });
                             });
 
@@ -802,7 +802,7 @@ describe("Whole scenario with prod contract: Day0", function () {
 
                                     let beforeLock = ethers.BigNumber.from("4392000000000");
 
-                                    // Receive
+                                    // Receive 45 days
                                     await expect(
                                         _RewardContract.connect(delegator1).claimStakingReward()
                                     ).to.emit(
@@ -824,7 +824,25 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     expected = allocated.mul(2).mul(90).div(7).div(100) // 2/7 vp - 10% commission
                                     accumulated = expected.add(beforeLock)
 
-                                    // Receive
+                                    // Receive 45 days (total 90 days)
+                                    await expect(
+                                        _RewardContract.connect(delegator1).claimStakingReward(claimOption)
+                                    ).to.emit(
+                                        _RewardContract, "TransferredStakingReward"
+                                    ).withArgs(
+                                        delegator1.address, delegator1.address, 0, beforeLock
+                                    )
+
+                                    // Receive 45 days (total 135 days)
+                                    await expect(
+                                        _RewardContract.connect(delegator1).claimStakingReward(claimOption)
+                                    ).to.emit(
+                                        _RewardContract, "TransferredStakingReward"
+                                    ).withArgs(
+                                        delegator1.address, delegator1.address, 0, beforeLock
+                                    )
+
+                                    // Receive 45 days (total 180 days)
                                     await expect(
                                         _RewardContract.connect(delegator1).claimStakingReward()
                                     ).to.emit(
@@ -849,7 +867,7 @@ describe("Whole scenario with prod contract: Day0", function () {
 
                                     let beforeLock = ethers.BigNumber.from("4392000000000");
 
-                                    // Receive
+                                    // Receive 45 days
                                     await expect(
                                         _RewardContract.connect(delegator1).claimStakingReward()
                                     ).to.emit(
@@ -877,7 +895,25 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     expected = allocated.mul(1).mul(90).div(6).div(100) // 1/6 vp - 10% commission
                                     accumulated = expected.add(beforeLock)
 
-                                    // Receive
+                                    // Receive 45 days (total 90 days)
+                                    await expect(
+                                        _RewardContract.connect(delegator1).claimStakingReward(claimOption)
+                                    ).to.emit(
+                                        _RewardContract, "TransferredStakingReward"
+                                    ).withArgs(
+                                        delegator1.address, delegator1.address, 0, beforeLock
+                                    )
+
+                                    // Receive 45 days (total 135 days)
+                                    await expect(
+                                        _RewardContract.connect(delegator1).claimStakingReward(claimOption)
+                                    ).to.emit(
+                                        _RewardContract, "TransferredStakingReward"
+                                    ).withArgs(
+                                        delegator1.address, delegator1.address, 0, beforeLock
+                                    )
+
+                                    // Receive 45 days (total 180 days)
                                     await expect(
                                         _RewardContract.connect(delegator1).claimStakingReward()
                                     ).to.emit(

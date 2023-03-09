@@ -196,6 +196,7 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
      */
     function unlock(uint256 amount) override external {
         require(amount > 0, "Staking: Amount is zero");
+        require(_validationPowerByDelegator[msg.sender] >= amount, "Staking: Requested amount exceeds unlockable");
 
         uint today = _timeContract.getCurrentTimeIndex();
 
