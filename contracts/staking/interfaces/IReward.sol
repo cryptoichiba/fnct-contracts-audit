@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
+import "./ILogFileHash.sol";
 import "../fixed_interfaces/IFixedReward.sol";
 
 /**
@@ -92,6 +93,11 @@ interface IReward is IFixedReward {
      * @notice Returns available staking reward amount of the `user`.
      */
     function calcAvailableStakingRewardAmount(address user) external view returns(uint256);
+
+    /**
+     * @notice Returns available staking reward and winner status of the `user` on the `day`.
+     */
+    function calcAvailableStakingRewardAmountOfDay(uint day, address user) external view returns(StakingRewardRecord memory, WinnerStatus);
 
     /**
      * @notice Returns available staking commission amount of the `user`.

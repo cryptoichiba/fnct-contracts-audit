@@ -49,6 +49,13 @@ contract MockRewardContract is IReward, Ownable, TicketUtils {
         return 2234 ether * 5 / 100;
     }
 
+    function calcAvailableStakingRewardAmountOfDay(uint day, address user) public view returns(StakingRewardRecord memory, WinnerStatus) {
+        day; user;
+
+        address validator = 0x0957b455E9f3B32bF75aC68d05FdEf151e192779;
+        return (StakingRewardRecord(4, 31 ether, 2 ether, validator), WinnerStatus.Decided);
+    }
+
     function calcAvailableStakingRewardAmount(address user) override external pure returns(uint) {
         user;
         return 2234 ether;

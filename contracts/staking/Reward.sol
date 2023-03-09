@@ -276,7 +276,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
             if ( !_receivedStakingRewards[user][day] ) {
                 StakingRewardRecord memory rewardRecord;
                 WinnerStatus status;
-                (rewardRecord, status) = _calcAvailableStakingRewardAmountOfDay(day, user);
+                (rewardRecord, status) = calcAvailableStakingRewardAmountOfDay(day, user);
                 if ( status == WinnerStatus.Decided ) {
                     total += rewardRecord.amount;
                 }
@@ -304,7 +304,10 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
         return total;
     }
 
-    function _calcAvailableStakingRewardAmountOfDay(uint day, address user) internal view returns(StakingRewardRecord memory, WinnerStatus) {
+    /**
+     * @notice Returns available staking reward amount of the `user` on the `day`.
+     */
+    function calcAvailableStakingRewardAmountOfDay(uint day, address user) public view returns(StakingRewardRecord memory, WinnerStatus) {
         address chosenValidator = _stakingContract.getValidatorOfDay(day, user);
         address winner;
         WinnerStatus status;
@@ -354,7 +357,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
         for ( uint day = startDate; day >= 0 && recordCount < nRecords; day-- ) {
             StakingRewardRecord memory rewardRecord;
             WinnerStatus status;
-            (rewardRecord, status) = _calcAvailableStakingRewardAmountOfDay(day, user);
+            (rewardRecord, status) = calcAvailableStakingRewardAmountOfDay(day, user);
             if ( rewardRecord.amount > 0 ) {
                 temporary[recordCount] = rewardRecord;
                 recordCount++;
@@ -623,7 +626,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
             if ( !_receivedStakingRewards[receiver][day] ) {
                 StakingRewardRecord memory rewardRecord;
                 WinnerStatus status;
-                (rewardRecord, status) = _calcAvailableStakingRewardAmountOfDay(day, receiver);
+                (rewardRecord, status) = calcAvailableStakingRewardAmountOfDay(day, receiver);
                 if ( status == WinnerStatus.Decided || status == WinnerStatus.NoMajority || status == WinnerStatus.Abandoned ) {
                     // For other reason, they might be granted rewards later
                     availableReward += rewardRecord.amount;
