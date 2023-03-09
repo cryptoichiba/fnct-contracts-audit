@@ -12,6 +12,7 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
     mapping(address => Validator) _validators;
     address[] _validatorList;
     mapping(address => CommissionChangeRequest) _commissionChangeRequests;
+    mapping(address => CommissionChangeRequest[]) _commissionChangeRequestHistory;
     mapping(address => mapping(uint => uint)) _cachedCommissionRate;
     mapping(address => uint) _initialCommissionRate;
     mapping(address => address) _submitter;
@@ -125,12 +126,14 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
     }
 
     function _getCommissionRateOfDay(uint day, address validator) internal view returns(uint) {
-        for ( uint i = day; i >= 0; i-- ) {
-            if ( _commissionChangeRequests[validator].startDate > 0 && i > _commissionChangeRequests[validator].startDate ) {
-                return _commissionChangeRequests[validator].targetCommission;
+        uint requestCount = _commissionChangeRequestHistory[validator].length;
+        if ( requestCount > 0 ) {
+            for ( uint i = requestCount - 1; i >= 0; i-- ) {
+                if ( _commissionChangeRequestHistory[validator][i].startDate <= day ) {
+                    return _commissionChangeRequestHistory[validator][i].targetCommission;
+                }
+                if ( i == 0 ) break;
             }
-
-            if ( i == 0 ) break;
         }
 
         return _initialCommissionRate[validator];
@@ -242,7 +245,10 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
         }
 
         // start date is always 1 week from request time
-        _commissionChangeRequests[msg.sender] = CommissionChangeRequest(availableAt, commissionRate);
+        CommissionChangeRequest memory request = CommissionChangeRequest(availableAt, commissionRate);
+        _commissionChangeRequests[msg.sender] = request;
+        _commissionChangeRequestHistory[msg.sender].push(request);
+
         emit CommissionRateUpdated(msg.sender, availableAt, commissionRate);
     }
 
