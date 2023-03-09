@@ -26,6 +26,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
     uint constant _dailyAllocationFromPoolPPM = 1708;   // 0.1708%
     uint constant _denominatorInPPM = 10 ** 6;          // 100%
+    uint constant defaultLimitDays = 45;
 
     struct ScheduledRewards {
         uint availableDaysAfterLaunch;
@@ -523,7 +524,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
      * @dev Receives multiple days reward at once up to the gasLimit.
      */
     function claimStakingReward() override external returns(uint256) {
-        return _transferStakingReward(msg.sender);
+        return _transferStakingReward(msg.sender, defaultLimitDays);
     }
 
     /**
@@ -533,13 +534,13 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
     function claimStakingCommission(address validator) external returns(uint256) {
         require(_validatorContract.checkIfExist(validator), "Reward: Validator is not in the whitelist");
         require(_validatorContract.getCommissionReceiver(validator) == msg.sender, "Reward: Sender is not allowed as a receiver");
-        return _transferStakingCommission(validator, msg.sender);
+        return _transferStakingCommission(validator, msg.sender, defaultLimitDays);
     }
 
     /**
      * @notice Moves CTH reward tokens from this contract to the `ticket`.receiver and returns received token amount.
      */
-    function claimCTHReward(CTHRewardTransferTicket calldata ticket) 
+    function claimCTHReward(CTHRewardTransferTicket calldata ticket)
         isValidCTHRewardTicket(ticket)
         override external returns(uint256) {
         _usedBodySignatureHash[keccak256(ticket.bodySignature)] = true;
@@ -555,7 +556,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
         isValidCTHRewardTicket(ticket)
         override external returns(uint256) {
         _usedBodySignatureHash[keccak256(ticket.bodySignature)] = true;
-        uint256 transferredAmount = _transferStakingReward(msg.sender) + _transferCTHReward(ticket.receiver, ticket.accumulatedAmount);
+        uint256 transferredAmount = _transferStakingReward(msg.sender, defaultLimitDays) + _transferCTHReward(ticket.receiver, ticket.accumulatedAmount);
 
         emit TransferredRewards(msg.sender, msg.sender, transferredAmount);
 
@@ -567,11 +568,11 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
     /**
      * @notice Meta transaction for claimStakingReward with signed `ticket`.
      */
-    function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket)
+    function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket, uint limitDays)
         isValidStakingRewardTicket(ticket)
         override external returns(uint256) {
         _usedBodySignatureHash[keccak256(ticket.bodySignature)] = true;
-        return _transferStakingReward(ticket.receiver);
+        return _transferStakingReward(ticket.receiver, limitDays);
     }
 
     /**
@@ -587,17 +588,17 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
     /**
      * @notice Meta transaction for claimRewards with signed `tickets`.
      */
-    function metaClaimRewards(RewardTransferTickets calldata tickets) override external returns(uint256) {
-        return _transferRewards(tickets);
+    function metaClaimRewards(RewardTransferTickets calldata tickets, uint limitDays) override external returns(uint256) {
+        return _transferRewards(tickets, limitDays);
     }
 
     /**
      * @notice Meta transaction of claimRewards for multiple users with signed `tickets` and returns total received token amount.
      */
-    function metaClaimRewardsWithList(RewardTransferTickets[] calldata ticketsList) override external returns(uint256) {
+    function metaClaimRewardsWithList(RewardTransferTickets[] calldata ticketsList, uint limitDays) override external returns(uint256) {
         uint256 transferredAmount = 0;
         for ( uint i = 0; i < ticketsList.length; i++ ) {
-            transferredAmount += _transferRewards(ticketsList[i]);
+            transferredAmount += _transferRewards(ticketsList[i], limitDays);
         }
         return transferredAmount;
     }
@@ -608,7 +609,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
      * @notice Called from claimStakingReward and its meta transaction internally.
      * Emits a {TransferredStakingReward} event.
      */
-    function _transferStakingReward(address receiver) internal returns(uint256) {
+    function _transferStakingReward(address receiver, uint limitDays) internal returns(uint256) {
         if ( receiver == address(0) ) {
           return 0;
         }
@@ -617,8 +618,8 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
         address validator = _stakingContract.getValidatorOfDay(today, receiver);
 
         uint256 availableReward = 0;
-        uint gasRequirement = 1_000_000;
-        for ( uint day = _willReceiveFrom[receiver]; day < today && gasRequirement < gasleft(); day++ ) {
+        uint processedDays = 0;
+        for ( uint day = _willReceiveFrom[receiver]; day < today && processedDays < limitDays; day++ ) {
             if ( !_receivedStakingRewards[receiver][day] ) {
                 StakingRewardRecord memory rewardRecord;
                 WinnerStatus status;
@@ -627,6 +628,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
                     // For other reason, they might be granted rewards later
                     availableReward += rewardRecord.amount;
                     _receivedStakingRewards[receiver][day] = true;
+                    processedDays++;
                     if ( _willReceiveFrom[receiver] == day ) {
                         // Received continuously. Will start from next day on the next time.
                         _willReceiveFrom[receiver]++;
@@ -649,11 +651,12 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
      * @notice Called from claimStakingCommission internally.
      * Emits a {TransferredStakingCommission} event.
      */
-    function _transferStakingCommission(address validator, address receiver) internal returns(uint256) {
+    function _transferStakingCommission(address validator, address receiver, uint limitDays) internal returns(uint256) {
         uint today = _timeContract.getCurrentTimeIndex();
+
         uint256 availableCommission = 0;
-        uint gasRequirement = 1_000_000;
-        for ( uint day = _willReceiveCommissionFrom[validator]; day < today && gasRequirement < gasleft(); day++ ) {
+        uint processedDays = 0;
+        for ( uint day = _willReceiveCommissionFrom[validator]; day < today && processedDays < limitDays; day++ ) {
             if ( !_receivedStakingCommission[validator][day] ) {
                 StakingCommissionRecord memory commissionRecord;
                 WinnerStatus status;
@@ -662,6 +665,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
                     // For other reason, they might be granted comission later
                     availableCommission += commissionRecord.amount;
                     _receivedStakingCommission[validator][day] = true;
+                    processedDays++;
                     if ( _willReceiveCommissionFrom[validator] == day ) {
                         // Received continuously. Will start from next day on the next time.
                         _willReceiveCommissionFrom[validator]++;
@@ -712,7 +716,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
      * @notice Called from claimRewards and its meta transaction internally.
      * Emits a {TransferredRewards} event.
      */
-    function _transferRewards(RewardTransferTickets calldata tickets)
+    function _transferRewards(RewardTransferTickets calldata tickets, uint limitDays)
         isValidStakingRewardTicket(tickets.ticketForStaking)
         isValidCTHRewardTicket(tickets.ticketForCTH)
         internal returns(uint256) {
@@ -732,7 +736,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
 
         if ( tickets.ticketForStaking.receiver != address(0x0) ) {
             _usedBodySignatureHash[keccak256(tickets.ticketForStaking.bodySignature)] = true;
-            transferredAmount += _transferStakingReward(tickets.ticketForStaking.receiver);
+            transferredAmount += _transferStakingReward(tickets.ticketForStaking.receiver, limitDays);
         }
 
         address receiver = tickets.ticketForStaking.receiver != address(0x0) ?

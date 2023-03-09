@@ -93,7 +93,7 @@ describe("Meta Transaction: Day0", function () {
             const valid_ticket = await createStakingRewardTransferTicket(delegator1, 0);
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(valid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(valid_ticket, 45)
             ).not.to.be.reverted
 
             // After token balance
@@ -155,7 +155,7 @@ describe("Meta Transaction: Day0", function () {
             const invalid_ticket = await createStakingRewardTransferTicket(delegator1, wrongAmount);
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket, 45)
             ).not.to.be.reverted
             expect(await _FNCToken.balanceOf(delegator1.address)).not.to.equal(wrongAmount);
             expect(await _FNCToken.balanceOf(delegator1.address)).to.equal(expected);
@@ -166,7 +166,7 @@ describe("Meta Transaction: Day0", function () {
             const invalid_ticket = await createStakingRewardTransferTicket(nobody, 0);
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket, 45)
             ).not.to.be.reverted
             expect(await _FNCToken.balanceOf(nobody.address)).to.equal(0);
             expect(await _FNCToken.balanceOf(delegator1.address)).to.equal(0);
@@ -177,7 +177,7 @@ describe("Meta Transaction: Day0", function () {
             const invalid_ticket = await createStakingRewardTransferTicket(delegator1, 0, nobody);
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket, 45)
             ).to.be.revertedWith('Reward: Invalid head signer');
         });
 
@@ -190,7 +190,7 @@ describe("Meta Transaction: Day0", function () {
             invalid_ticket.ticketSigner = otherInstantSigner.address;
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket, 45)
             ).to.be.revertedWith('Reward: Invalid body signer');
         });
 
@@ -205,7 +205,7 @@ describe("Meta Transaction: Day0", function () {
             invalid_ticket.metaSignature = falsifiedMetaSignature;
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket, 45)
             ).to.be.revertedWith('Reward: Invalid head signer');
         });
 
@@ -220,7 +220,7 @@ describe("Meta Transaction: Day0", function () {
             invalid_ticket.bodySignature = falsifiedBodySignature;
 
             await expect(
-                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket)
+                _RewardContract.connect(worker).metaClaimStakingReward(invalid_ticket, 45)
             ).to.be.revertedWith('Reward: Invalid body signer');
         });
 
@@ -235,9 +235,9 @@ describe("Meta Transaction: Day0", function () {
 
             await expect(
                 _RewardContract.connect(worker).metaClaimRewards({
-                  ticketForStaking,
-                  ticketForCTH
-                })
+                    ticketForStaking,
+                    ticketForCTH
+                }, 45)
             ).not.to.be.reverted
 
             // After token balance
@@ -255,9 +255,9 @@ describe("Meta Transaction: Day0", function () {
 
             await expect(
                 _RewardContract.connect(worker).metaClaimRewards({
-                  ticketForStaking,
-                  ticketForCTH
-                })
+                    ticketForStaking,
+                    ticketForCTH
+                }, 45)
             ).to.be.revertedWith('Reward: Invalid receiver');
 
             // After token balance
@@ -289,7 +289,7 @@ describe("Meta Transaction: Day0", function () {
                   { ticketForStaking: ticketForStaking1, ticketForCTH: ticketForCTH1 },
                   { ticketForStaking: ticketForStaking2, ticketForCTH: ticketForCTH2 },
                   { ticketForStaking: ticketForStaking3, ticketForCTH: ticketForCTH3 },
-                ])
+                ], 45)
             ).not.to.be.reverted
 
             expect(await _FNCToken.balanceOf(delegator1.address)).to.equal(expectedStaking1.add(expectedCTH1));
@@ -313,7 +313,7 @@ describe("Meta Transaction: Day0", function () {
               _RewardContract.connect(nobody).metaClaimRewards({
                   ticketForStaking: zeroTicketForStaking,
                   ticketForCTH: ticketForCTH
-              })
+              }, 45)
             ).not.to.be.reverted
 
             // QSP-5
@@ -322,7 +322,7 @@ describe("Meta Transaction: Day0", function () {
               _RewardContract.connect(worker).metaClaimRewards({
                   ticketForStaking: ticketForStaking,
                   ticketForCTH: ticketForCTH
-              })
+              }, 45)
             ).not.to.be.reverted
 
             // After token balance
@@ -348,7 +348,7 @@ describe("Meta Transaction: Day0", function () {
               _RewardContract.connect(nobody).metaClaimRewards({
                   ticketForStaking: ticketForStaking,
                   ticketForCTH: zeroTicketForCTH
-              })
+              }, 45)
             ).not.to.be.reverted
 
             // QSP-5
@@ -357,7 +357,7 @@ describe("Meta Transaction: Day0", function () {
               _RewardContract.connect(worker).metaClaimRewards({
                   ticketForStaking: ticketForStaking,
                   ticketForCTH: ticketForCTH
-              })
+              }, 45)
             ).not.to.be.reverted
 
             // After token balance

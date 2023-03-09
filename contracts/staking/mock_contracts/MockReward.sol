@@ -169,7 +169,8 @@ contract MockRewardContract is IReward, Ownable, TicketUtils {
     * meta Txs
     **********************************************************************************************************/
 
-    function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket) override external returns(uint) {
+    function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket, uint limitDays) override external returns(uint) {
+        limitDays;
         return _transferStakingReward(ticket.receiver);
     }
 
@@ -177,12 +178,15 @@ contract MockRewardContract is IReward, Ownable, TicketUtils {
         return _transferCTHReward(ticket.receiver, ticket.accumulatedAmount);
     }
 
-    function metaClaimRewards(RewardTransferTickets calldata tickets) override external returns(uint) {
+    function metaClaimRewards(RewardTransferTickets calldata tickets, uint limitDays) override external returns(uint) {
         require(tickets.ticketForStaking.receiver == tickets.ticketForCTH.receiver);
+        limitDays;
         return _transferRewards(tickets.ticketForCTH.receiver, tickets.ticketForCTH.accumulatedAmount);
     }
 
-    function metaClaimRewardsWithList(RewardTransferTickets[] calldata ticketsList) override external returns(uint) {
+    function metaClaimRewardsWithList(RewardTransferTickets[] calldata ticketsList, uint limitDays) override external returns(uint) {
+        limitDays;
+
         uint transferredAmount = 0;
         for ( uint i = 0; i < ticketsList.length; i++ ) {
             transferredAmount += _transferRewards(ticketsList[i].ticketForCTH.receiver, ticketsList[i].ticketForCTH.accumulatedAmount);

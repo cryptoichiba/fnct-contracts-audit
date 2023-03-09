@@ -190,7 +190,7 @@ interface IReward is IFixedReward {
     /**
      * @notice Meta transaction for claimStakingReward with signed `ticket`.
      */
-    function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket) external returns(uint256);
+    function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket, uint limitDays) external returns(uint256);
 
     /**
      * @notice Meta transaction for claimCTHReward with signed `ticket`.
@@ -200,12 +200,12 @@ interface IReward is IFixedReward {
     /**
      * @notice Meta transaction for claimRewards with signed `tickets`.
      */
-    function metaClaimRewards(RewardTransferTickets calldata tickets) external returns(uint256);
+    function metaClaimRewards(RewardTransferTickets calldata tickets, uint limitDays) external returns(uint256);
 
     /**
      * @notice Meta transaction of claimRewards for multiple users with signed `tickets` and returns total received token amount.
      */
-    function metaClaimRewardsWithList(RewardTransferTickets[] calldata tickets) external returns(uint256);
+    function metaClaimRewardsWithList(RewardTransferTickets[] calldata tickets, uint limitDays) external returns(uint256);
 
     /// Events
 
