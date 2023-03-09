@@ -176,6 +176,9 @@ const deployLogFileHash = async(
   );
   await LogFileHash.deployed();
 
+  // Grant RNG usage rights to LogFileHash
+  RNG.setRequester(LogFileHash.address)
+
   return LogFileHash;
 };
 
