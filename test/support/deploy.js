@@ -98,7 +98,8 @@ const deployRNG = async (_TimeContract = null, useMock = false, _deployer = null
   const RNG = await factory.deploy(
       "0xb0897686c545045aFc77CF20eC7A532E3120E0F1", // Polygon Mainnet LINK token address
       "0x4e42f0adEB69203ef7AaA4B7c414e5b1331c14dc",  // Polygon Mainnet LINK VRF wrapper address);
-      40
+      40,
+      TimeContract.address
   );
   await RNG.deployed();
 
