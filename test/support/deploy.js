@@ -5,10 +5,19 @@ const MUMBAI_FNCT = '0xcc0A07053b7bfd69d72991Ad2e83c11f7838A9ad';
 const POLYGON_ICBT = '0x0f93119bdac9e80ca845e9a56ae027507cb24c6a';
 
 // Constants used in RNG Chainlink integration
-const POINT_ONE_LINK = BigNumber.from("100000000000000000") // 0.1 LINK
-const POINT_ZERO_ZERO_THREE_LINK = BigNumber.from("3000000000000000") // 0.003 LINK
-const ONE_HUNDRED_LINK = BigNumber.from("100000000000000000000") // 100 LINK
-const WEI_PER_UNIT_LINK = POINT_ZERO_ZERO_THREE_LINK
+// - "Overhead" values taken from https://github.com/smartcontractkit/hardhat-starter-kit/blob/main/test/unit/RandomNumberDirectFundingConsumer.spec.js
+//   They use the worst-case gas overhead for 10 words requested, plus refund issued to consumer
+// - "Key Hash" for wrapper is normally "the key hash to use when requesting randomness. Fees are paid based on current
+//   gas fees, so this should be set to the highest gas lane on the network."  However since we're not actually
+//   generating randomness, setting this to a placeholder
+const LINK_POINT_ONE = BigNumber.from("100000000000000000") // 0.1 LINK
+const LINK_ONE_HUNDRED = BigNumber.from("100000000000000000000") // 100 LINK
+const LINK_WEI_PER_UNIT = BigNumber.from("3000000000000000") // 0.003 LINK
+const LINK_WRAPPER_GAS_OVERHEAD = BigNumber.from(60_000)
+const LINK_COORDINATOR_GAS_OVERHEAD = BigNumber.from(52_000)
+const LINK_WRAPPER_PREMIUM_PERCENTAGE = 10
+const LINK_MAX_NUM_WORDS = 10
+const LINK_KEY_HASH = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
 const getDefaultDeployer = async () => {
   const [firstAccount] = await ethers.getSigners();
@@ -119,16 +128,28 @@ const deployRNG = async (_TimeContract = null, useMock = false, _deployer = null
 
   // VRFCoordinatorV2Mock creation
   const coordinatorFactory = await ethers.getContractFactory('VRFCoordinatorV2Mock', deployer)
-  const CoordinatorContract = await coordinatorFactory.deploy(POINT_ONE_LINK, 1e9) // 0.000000001 LINK per gas
+  const CoordinatorContract = await coordinatorFactory.deploy(LINK_POINT_ONE, 1e9) // 0.000000001 LINK per gas
 
   // MockV3Aggregator creation
   const linkEthFeedFactory = await ethers.getContractFactory("MockV3Aggregator", deployer)
-  const LinkEthFeedContract = await linkEthFeedFactory.deploy(18, WEI_PER_UNIT_LINK) // 1 LINK = 0.003 ETH
+  const LinkEthFeedContract = await linkEthFeedFactory.deploy(18, LINK_WEI_PER_UNIT) // 1 LINK = 0.003 ETH
 
   // VRFV2Wrapper creation
   const wrapperFactory = await ethers.getContractFactory("VRFV2Wrapper", deployer)
   const WrapperContract = await wrapperFactory.deploy(LinkContract.address,
       LinkEthFeedContract.address, CoordinatorContract.address);
+
+  // VRFV2Wrapper configure
+  //const keyHash = networkConfig[chainId]["keyHash"]
+  await WrapperContract
+      .connect(deployer)
+      .setConfig(
+          LINK_WRAPPER_GAS_OVERHEAD,
+          LINK_COORDINATOR_GAS_OVERHEAD,
+          LINK_WRAPPER_PREMIUM_PERCENTAGE,
+          LINK_KEY_HASH,
+          LINK_MAX_NUM_WORDS
+      )
 
   // RandomNumberGenerator creation
   const rngFactory = await ethers.getContractFactory('RandomNumberGenerator', deployer);
@@ -139,14 +160,14 @@ const deployRNG = async (_TimeContract = null, useMock = false, _deployer = null
   const fund = async (link, linkOwner, receiver, amount) => {
     await link.connect(linkOwner).transfer(receiver, amount)
   }
-  await fund(LinkContract, deployer, RNGContract.address, ONE_HUNDRED_LINK)
+  await fund(LinkContract, deployer, RNGContract.address, LINK_ONE_HUNDRED)
 
   // For whatever reason, VRFCoordinatorV2Mock::fufillRandomWords also a subscription funded with Link, even though
   // test is using direct funding.  (Source code seems to confirm this - there doesn't seem to be any
   // direct funding pathway or alternate function - and Chainlink direct funding unit test example is indeed funding
   // a subscription)
   // Note: "1" is the wrapper's subscription id
-  await CoordinatorContract.connect(deployer).fundSubscription(1, ONE_HUNDRED_LINK)
+  await CoordinatorContract.connect(deployer).fundSubscription(1, LINK_ONE_HUNDRED)
 
   return RNGContract;
 };
