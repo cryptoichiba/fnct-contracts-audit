@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
+const { BigNumber } = ethers;
 const { genInstantSigner } = require("./support/utils");
 const {
   createStakingRewardTransferTicket,
@@ -83,15 +84,12 @@ describe("Meta Transaction: Day0", function () {
             await _TimeContract.setCurrentTimeIndex(2);
 
             await _LogFileHash.connect(validator1).submit(validator1.address, 1, file1, file2);
-            let tx = await _LogFileHash.connect(validator2).submit(validator2.address, 2, file2, file3);
-
-            // Get Chainlink request ID from tx events
-            let { events } = await tx.wait();
-            let [requestId] = events.filter( x => x.event === 'RequestSent')[0].args;
+            await _LogFileHash.connect(validator2).submit(validator2.address, 2, file2, file3);
 
             // Send "0" as random number for day 1 request
+            // Request ID is 2 ( VRFCoordinatorV2Mock.sol assigns IDs [1,2,3...]
             await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
-                requestId, _ChainlinkWrapper.address, [0])
+                BigNumber.from(2), _ChainlinkWrapper.address, [0])
         });
 
         it("Success: Get Reward(Meta tx / valid ticket)", async function () {
