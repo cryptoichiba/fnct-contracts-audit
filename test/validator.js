@@ -294,7 +294,7 @@ describe("Validator", function () {
 
             // Scheduled but not available yet
             result = await _ValidatorContract.getCommissionRateOfDay(15, validator1.address)
-            // await expect(result).to.equal(ethers.BigNumber.from(100000)); // Under the QSP-4 repro code
+            // await expect(result).to.equal(ethers.BigNumber.from(100000)); // Under the #2/QSP-4 repro code
             await expect(result).to.equal(ethers.BigNumber.from(50000));
         });
 
@@ -323,7 +323,7 @@ describe("Validator", function () {
 
             // Scheduled but not available yet
             result = await _ValidatorContract.getCommissionRateOfDay(15, validator1.address)
-            // await expect(result).to.equal(ethers.BigNumber.from(100000)); // Under the QSP-4 repro code
+            // await expect(result).to.equal(ethers.BigNumber.from(100000)); // Under the #2/QSP-4 repro code
             await expect(result).to.equal(ethers.BigNumber.from(50000));
         });
     });

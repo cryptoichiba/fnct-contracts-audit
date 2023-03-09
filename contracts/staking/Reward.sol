@@ -723,11 +723,17 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
             "Reward: Invalid receiver"
         );
 
-        _usedBodySignatureHash[keccak256(tickets.ticketForStaking.bodySignature)] = true;
-        _usedBodySignatureHash[keccak256(tickets.ticketForCTH.bodySignature)] = true;
+        uint256 transferredAmount = 0;
 
-        uint256 transferredAmount = _transferStakingReward(tickets.ticketForStaking.receiver)
-            + _transferCTHReward(tickets.ticketForCTH.receiver, tickets.ticketForCTH.accumulatedAmount);
+        if ( tickets.ticketForCTH.receiver != address(0x0) ) {
+            _usedBodySignatureHash[keccak256(tickets.ticketForCTH.bodySignature)] = true;
+            transferredAmount +=  _transferCTHReward(tickets.ticketForCTH.receiver, tickets.ticketForCTH.accumulatedAmount);
+        }
+
+        if ( tickets.ticketForStaking.receiver != address(0x0) ) {
+            _usedBodySignatureHash[keccak256(tickets.ticketForStaking.bodySignature)] = true;
+            transferredAmount += _transferStakingReward(tickets.ticketForStaking.receiver);
+        }
 
         address receiver = tickets.ticketForStaking.receiver != address(0x0) ?
             tickets.ticketForStaking.receiver : tickets.ticketForCTH.receiver;

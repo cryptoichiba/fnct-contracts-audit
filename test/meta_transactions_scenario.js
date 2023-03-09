@@ -8,6 +8,7 @@ const {
   ZeroStakingRewardTransferTicket,
 } = require("./support/ticket");
 const {deployAll} = require('./support/deploy');
+const {constants} = require("@openzeppelin/test-helpers");
 
 describe("Meta Transaction: Day0", function () {
     let _TimeContract, _FNCToken, _ValidatorContract, _VaultContract, _StakingContract, _LogFileHash, _RNG, _RewardContract;
@@ -294,6 +295,73 @@ describe("Meta Transaction: Day0", function () {
             expect(await _FNCToken.balanceOf(delegator1.address)).to.equal(expectedStaking1.add(expectedCTH1));
             expect(await _FNCToken.balanceOf(delegator2.address)).to.equal(expectedStaking2);
             expect(await _FNCToken.balanceOf(delegator3.address)).to.equal(expectedCTH3);
+        });
+
+        it('Exploit: #2/QSP-5 Denial of Service on Ticket System / CTH', async () => {
+            // dailyReward * (myLock / totalLock) * (100% - commissionRate);
+            // 17080 * 2000 / 7000 * 90% = 4392 tokens
+            const expectedStaking = ethers.utils.parseUnits("4392");
+            const expectedCTH = ethers.utils.parseUnits("500");
+
+            const ticketForStaking = await createStakingRewardTransferTicket(delegator1, 0);
+            const ticketForCTH = await createCTHRewardTransferTicket(delegator1, expectedCTH);
+            const zeroTicketForStaking = {...ZeroStakingRewardTransferTicket, ...{ amount: 0 }};
+
+            // QSP-5 prevent receiving by other delegator
+            ticketForCTH.receiver = constants.ZERO_ADDRESS;
+            await expect(
+              _RewardContract.connect(nobody).metaClaimRewards({
+                  ticketForStaking: zeroTicketForStaking,
+                  ticketForCTH: ticketForCTH
+              })
+            ).not.to.be.reverted
+
+            // QSP-5
+            ticketForCTH.receiver = delegator1.address
+            await expect(
+              _RewardContract.connect(worker).metaClaimRewards({
+                  ticketForStaking: ticketForStaking,
+                  ticketForCTH: ticketForCTH
+              })
+            ).not.to.be.reverted
+
+            // After token balance
+            expect(await _FNCToken.balanceOf(delegator1.address)).to.equal(expectedStaking.add(expectedCTH));
+        });
+
+        it('Exploit: #2/QSP-5 Denial of Service on Ticket System / Staking', async () => {
+            // dailyReward * (myLock / totalLock) * (100% - commissionRate);
+            // 17080 * 2000 / 7000 * 90% = 4392 tokens
+            const expectedStaking = ethers.utils.parseUnits("4392");
+            const expectedCTH = ethers.utils.parseUnits("500");
+
+            const ticketForStaking = await createStakingRewardTransferTicket(delegator1, 0);
+            const ticketForCTH = await createCTHRewardTransferTicket(delegator1, expectedCTH);
+            const zeroTicketForCTH = {...ZeroCTHRewardTransferTicket, ...{ accumulatedAmount: 0 }};
+
+            console.log(ticketForCTH);
+            console.log(zeroTicketForCTH);
+
+            // QSP-5 prevent receiving by other delegator
+            ticketForStaking.receiver = constants.ZERO_ADDRESS;
+            await expect(
+              _RewardContract.connect(nobody).metaClaimRewards({
+                  ticketForStaking: ticketForStaking,
+                  ticketForCTH: zeroTicketForCTH
+              })
+            ).not.to.be.reverted
+
+            // QSP-5
+            ticketForStaking.receiver = delegator1.address
+            await expect(
+              _RewardContract.connect(worker).metaClaimRewards({
+                  ticketForStaking: ticketForStaking,
+                  ticketForCTH: ticketForCTH
+              })
+            ).not.to.be.reverted
+
+            // After token balance
+            expect(await _FNCToken.balanceOf(delegator1.address)).to.equal(expectedStaking.add(expectedCTH));
         });
     });
 });
