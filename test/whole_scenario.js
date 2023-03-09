@@ -766,7 +766,7 @@ describe("Whole scenario with prod contract: Day0", function () {
                                 it("Fail: Unlock tokens more than they locked", async function () {
                                     await expect (
                                         _StakingContract.connect(delegator1).unlock(vp3).then(tx => tx.wait())
-                                    ).to.be.revertedWith('Vault: Requested amount exceeds unlockable');
+                                    ).to.be.revertedWith('Staking: Requested amount exceeds unlockable');
                                 });
                             });
 
