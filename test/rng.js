@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
+const { deployRNG, deployTimeContract } = require("./support/deploy");
 
 // Test of random number generation using Chainlink.
 //
@@ -144,4 +145,27 @@ describe('RNGContract', () => {
 
     });
 
+    describe('Exploit: No More Staking Rewards After 30 Days', async () => {
+        it("Fail: Simulate on the mock", async () => {
+            const _TimeContract = await deployTimeContract(5, true);
+            const _RNG = await deployRNG(_TimeContract);
+            await _TimeContract.setCurrentTimeIndex(30);
+            await _RNG.requestRandomWords(30, 100);
+            await _RNG.setRandomNumber(30, 0);
+
+            await _TimeContract.setCurrentTimeIndex(31);
+            await _RNG.requestRandomWords(31, 100);
+            await expect(
+              _RNG.setRandomNumber(31, 0)
+            ).not.to.be.reverted;
+
+            await _TimeContract.setCurrentTimeIndex(32);
+            await _RNG.requestRandomWords(32, 100);
+
+            await _TimeContract.setCurrentTimeIndex(63);
+            await expect(
+              _RNG.setRandomNumber(32, 0)
+            ).to.be.revertedWith('RandomNumber: Callback was received after abandoned');
+        })
+    })
 });
