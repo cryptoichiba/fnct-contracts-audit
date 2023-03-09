@@ -772,14 +772,15 @@ describe("Whole scenario with prod contract: Day0", function () {
 
                             describe("Day182: reward amount related to unlock", function () {
                                 it("Reward without unlock at day 181", async function () {
+                                    await _RNG.setRandomNumber(0, 0).then(tx => tx.wait());
+                                    await _RNG.setRandomNumber(1, 0).then(tx => tx.wait());
+
                                     await expect(
                                         await _StakingContract.getTotalDelegatedTo(181, validator1.address)
                                     ).to.equal(ethers.BigNumber.from("7000000000000"));
 
                                     await _TimeContract.setCurrentTimeIndex(181).then(tx => tx.wait());
                                     await _LogFileHash.connect(validator1).submit(validator1.address, 1, file1, file2).then(tx => tx.wait())
-                                    await _RNG.setRandomNumber(0, 0).then(tx => tx.wait());
-                                    await _RNG.setRandomNumber(1, 0).then(tx => tx.wait());
 
                                     let beforeLock = ethers.BigNumber.from("4392000000000");
 
@@ -815,14 +816,15 @@ describe("Whole scenario with prod contract: Day0", function () {
                                 });
 
                                 it("Reward after unlock at day 181", async function () {
+                                    await _RNG.setRandomNumber(0, 0).then(tx => tx.wait());
+                                    await _RNG.setRandomNumber(1, 0).then(tx => tx.wait());
+
                                     await expect(
                                         await _StakingContract.getTotalDelegatedTo(181, validator1.address)
                                     ).to.equal(ethers.BigNumber.from("7000000000000"));
 
                                     await _TimeContract.setCurrentTimeIndex(181).then(tx => tx.wait());
                                     await _LogFileHash.connect(validator1).submit(validator1.address, 1, file1, file2).then(tx => tx.wait())
-                                    await _RNG.setRandomNumber(0, 0).then(tx => tx.wait());
-                                    await _RNG.setRandomNumber(1, 0).then(tx => tx.wait());
 
                                     let beforeLock = ethers.BigNumber.from("4392000000000");
 
