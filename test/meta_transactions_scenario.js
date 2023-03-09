@@ -83,9 +83,15 @@ describe("Meta Transaction: Day0", function () {
             await _TimeContract.setCurrentTimeIndex(2);
 
             await _LogFileHash.connect(validator1).submit(validator1.address, 1, file1, file2);
-            await _LogFileHash.connect(validator2).submit(validator2.address, 2, file2, file3);
+            let tx = await _LogFileHash.connect(validator2).submit(validator2.address, 2, file2, file3);
 
-            await _RNG.setRandomNumber(1, 0);
+            // Get Chainlink request ID from tx events
+            let { events } = await tx.wait();
+            let [requestId] = events.filter( x => x.event === 'RequestSent')[0].args;
+
+            // Send "0" as random number for day 1 request
+            await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                requestId, _ChainlinkWrapper.address, [0])
         });
 
         it("Success: Get Reward(Meta tx / valid ticket)", async function () {
