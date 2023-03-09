@@ -275,11 +275,12 @@ const deployAll = async (useMock = false, _deployer = null, preparedContracts = 
     useMock,
     deployer
   );
-  //RNG, ChainlinkWrapper, ChainlinkCoordinator are created as a set
-  assert((_RNG && _ChainlinkWrapper && _ChainlinkCoordinator) || (!_RNG && !_ChainlinkWrapper && !_ChainlinkCoordinator))
   RNG = _RNG, ChainlinkWrapper = _ChainlinkWrapper, ChainlinkCoordinator = _ChainlinkCoordinator;
+  if(!((_RNG && _ChainlinkWrapper && _ChainlinkCoordinator) || (!_RNG && !_ChainlinkWrapper && !_ChainlinkCoordinator))) {
+    throw new Error('Must provide all or none of RNG, ChainlinkWrapper, ChainlinkCoordinator set');
+  }
   if(!_RNG) {
-    [RNG, ChainlinkWrapper, ChainlinkCoordinator]  = await deployRNG(TimeContract, useMock, deployer);
+    [RNG, ChainlinkWrapper, ChainlinkCoordinator] = await deployRNG(TimeContract, useMock, deployer);
   }
   const LogFileHash = _LogFileHash || await deployLogFileHash(
     TimeContract,
