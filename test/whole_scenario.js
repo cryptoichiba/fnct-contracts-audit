@@ -1,18 +1,22 @@
 const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
+const { BigNumber } = ethers;
 const { deployAll } = require("./support/deploy");
 const {_logger} = require('truffle/build/553.bundled');
 
 describe("Whole scenario with prod contract: Day0", function () {
-    let _TimeContract, _FNCToken, _ValidatorContract, _VaultContract, _StakingContract, _LogFileHash, _RNG, _RewardContract;
+    let _TimeContract, _FNCToken, _ValidatorContract, _VaultContract, _StakingContract, _LogFileHash, _RNG,
+        _ChainlinkCoordinator, _ChainlinkWrapper, _RewardContract;
     let owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, delegator4, nobody, commissionReceiver;
 
     beforeEach(async function() {
         [owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, delegator4, nobody, commissionReceiver] = await ethers.getSigners();
-        const { TimeContract, FNCToken, ValidatorContract, VaultContract, StakingContract, LogFileHash, RNG, RewardContract } = await deployAll(false, owner);
+        const { TimeContract, FNCToken, ValidatorContract, VaultContract, StakingContract, LogFileHash, RNG,
+            ChainlinkCoordinator, ChainlinkWrapper, RewardContract } = await deployAll(false, owner);
         await VaultContract.setupStakingRole(StakingContract.address);
         _TimeContract = TimeContract, _FNCToken = FNCToken, _ValidatorContract = ValidatorContract, _VaultContract = VaultContract,
-            _StakingContract = StakingContract, _LogFileHash = LogFileHash, _RNG = RNG, _RewardContract = RewardContract;
+            _StakingContract = StakingContract, _LogFileHash = LogFileHash, _RNG = RNG, _ChainlinkCoordinator = ChainlinkCoordinator,
+            _ChainlinkWrapper = ChainlinkWrapper, _RewardContract = RewardContract;
     });
 
     it("Owner can manage validator list", async function () {
@@ -387,9 +391,11 @@ describe("Whole scenario with prod contract: Day0", function () {
                         _RewardContract.connect(validator1).claimStakingCommission(validator1.address)
                     ).to.emit(_RewardContract, "TransferredStakingCommission").withArgs(validator1.address, validator1.address, 0, 0);
 
-                    // Random number generation deleyed
-                    await _RNG.setRandomNumber(0, 0).then(tx => tx.wait());
-                    await _RNG.setRandomNumber(2, 0).then(tx => tx.wait());
+                    // Random number generation deleyed (Request1 = Day 2, Request2 = Day 4)
+                    await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                        BigNumber.from(1), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
+                    await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                        BigNumber.from(2), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                     // Delegator reward
                     let expectedReward = ethers.BigNumber.from("2557624104000");
@@ -512,7 +518,8 @@ describe("Whole scenario with prod contract: Day0", function () {
 
                             it("Success: getWinner(day0) after RNG processing(Random=500)", async function () {
                                 // 1000, 2000, 3000 -> 0 <= [500] < 1000
-                                await _RNG.setRandomNumber(0, web3.utils.toWei("500", "gwei")).then(tx => tx.wait());
+                                await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                    BigNumber.from(1), _ChainlinkWrapper.address, [web3.utils.toWei("500", "gwei")]).then(tx => tx.wait());
                                 let result = await _LogFileHash.getWinner(0);
                                 expect(result[1]).to.equal(WinnerStatus.Decided);
                                 expect(result[0]).to.equal(validator1.address);
@@ -520,7 +527,8 @@ describe("Whole scenario with prod contract: Day0", function () {
 
                             it("Success: getWinner(day0) after RNG processing(Random=5999)", async function () {
                                 // 1000, 2000, 3000 -> 0 <= [5999] < 1000
-                                await _RNG.setRandomNumber(0, web3.utils.toWei('5999', "gwei")).then(tx => tx.wait());
+                                await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                    BigNumber.from(1), _ChainlinkWrapper.address, [web3.utils.toWei("5999", "gwei")]).then(tx => tx.wait());
                                 let result = await _LogFileHash.getWinner(0);
                                 expect(result[1]).to.equal(WinnerStatus.Decided);
                                 expect(result[0]).to.equal(validator1.address);
@@ -528,7 +536,8 @@ describe("Whole scenario with prod contract: Day0", function () {
 
                             it("Success: getWinner(day0) after RNG processing(Random=6000)", async function () {
                                 // 1000, 2000, 3000 -> 1000 <= [6000] < 3000
-                                await _RNG.setRandomNumber(0, web3.utils.toWei('6000', "gwei")).then(tx => tx.wait());
+                                await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                    BigNumber.from(1), _ChainlinkWrapper.address, [web3.utils.toWei("6000", "gwei")]).then(tx => tx.wait());
                                 let result = await _LogFileHash.getWinner(0);
                                 expect(result[1]).to.equal(WinnerStatus.Decided);
                                 expect(result[0]).to.equal(validator2.address);
@@ -536,7 +545,8 @@ describe("Whole scenario with prod contract: Day0", function () {
 
                             it("Success: getWinner(day0) after RNG processing(Random=6500)", async function () {
                                 // 1000, 2000, 3000 -> 1000 <= [6500] < 3000
-                                await _RNG.setRandomNumber(0, web3.utils.toWei('6500', "gwei")).then(tx => tx.wait());
+                                await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                    BigNumber.from(1), _ChainlinkWrapper.address, [web3.utils.toWei("6500", "gwei")]).then(tx => tx.wait());
                                 let result = await _LogFileHash.getWinner(0);
                                 expect(result[1]).to.equal(WinnerStatus.Decided);
                                 expect(result[0]).to.equal(validator2.address);
@@ -549,7 +559,8 @@ describe("Whole scenario with prod contract: Day0", function () {
                             });
 
                             it("Fail: Didn't supply reward at Day0", async function () {
-                                await _RNG.setRandomNumber(0, 0).then(tx => tx.wait());
+                                await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                    BigNumber.from(1), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
                                 await expect(
                                     await _RewardContract.calcAvailableStakingRewardAmount(delegator1.address)
                                 ).to.equal(0);
@@ -576,7 +587,8 @@ describe("Whole scenario with prod contract: Day0", function () {
                                         // dailyReward * (myLock / totalLock) * (100% - commissionRate);
                                         const expected = 4392;              // 17080 * 2000 / 7000 * 90% = 4392 tokens
                                         const expectedCommission = 1708;    // 17080 * 10%
-                                        await _RNG.setRandomNumber(1, 0).then(tx => tx.wait());
+                                        await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                            BigNumber.from(2), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                         // Pre token balance
                                         await expect(
@@ -642,7 +654,8 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     // dailyReward * (myLock / totalLock) * (100% - commissionRate);
                                     // 17080 * 2000 / 7000 * 90% = 4392 tokens
                                     const expectedDay1 = 4392;
-                                    await _RNG.setRandomNumber(1, 0).then(tx => tx.wait());
+                                    await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                        BigNumber.from(2), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     // Receive on day2
                                     expectedReward = ethers.BigNumber.from("4392000000000");
@@ -662,7 +675,8 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     // dailyReward * (myLock / totalLock) * (100% - commissionRate);
                                     // 17050.82736 * 2000 / 7000 * 90% = 4384.498464 tokens
                                     const expectedDay2 = 4384.498464;
-                                    await _RNG.setRandomNumber(2, 0).then(tx => tx.wait());
+                                    await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                        BigNumber.from(3), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     // Receive on day3
                                     expectedReward = ethers.BigNumber.from("4384498464000");
@@ -685,7 +699,8 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     // dailyReward * (myLock / totalLock) * (100% - commissionRate);
                                     // 17080 * 2000 / 7000 * 90% = 4392 tokens
                                     const expectedDay1 = 4392;
-                                    await _RNG.setRandomNumber(1, 0).then(tx => tx.wait());
+                                    await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                        BigNumber.from(2), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     await _TimeContract.setCurrentTimeIndex(3).then(tx => tx.wait());
                                     await _LogFileHash.connect(validator1).submit(validator1.address, 2, file1, file2).then(tx => tx.wait())
@@ -694,7 +709,8 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     // dailyReward * (myLock / totalLock) * (100% - commissionRate);
                                     // 17050.82736 * 2000 / 7000 * 90% = 4384.498464 tokens
                                     const expectedDay2 = 4384.498464;
-                                    await _RNG.setRandomNumber(2, 0).then(tx => tx.wait());
+                                    await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                        BigNumber.from(3), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     // Receive at once
                                     await expect(
@@ -778,8 +794,10 @@ describe("Whole scenario with prod contract: Day0", function () {
 
                                     await _TimeContract.setCurrentTimeIndex(181).then(tx => tx.wait());
                                     await _LogFileHash.connect(validator1).submit(validator1.address, 1, file1, file2).then(tx => tx.wait())
-                                    await _RNG.setRandomNumber(0, 0).then(tx => tx.wait());
-                                    await _RNG.setRandomNumber(1, 0).then(tx => tx.wait());
+                                    await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                        BigNumber.from(1), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
+                                    await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                        BigNumber.from(2), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     let beforeLock = ethers.BigNumber.from("4392000000000");
 
@@ -794,7 +812,8 @@ describe("Whole scenario with prod contract: Day0", function () {
 
                                     await _TimeContract.setCurrentTimeIndex(182).then(tx => tx.wait());
                                     await _LogFileHash.connect(validator1).submit(validator1.address, 2, file2, file3).then(tx => tx.wait())
-                                    await _RNG.setRandomNumber(181, 0).then(tx => tx.wait());
+                                    await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                        BigNumber.from(3), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     await expect(
                                         await _VaultContract.calcLockOfDay(181, delegator1.address)
@@ -821,8 +840,10 @@ describe("Whole scenario with prod contract: Day0", function () {
 
                                     await _TimeContract.setCurrentTimeIndex(181).then(tx => tx.wait());
                                     await _LogFileHash.connect(validator1).submit(validator1.address, 1, file1, file2).then(tx => tx.wait())
-                                    await _RNG.setRandomNumber(0, 0).then(tx => tx.wait());
-                                    await _RNG.setRandomNumber(1, 0).then(tx => tx.wait());
+                                    await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                        BigNumber.from(1), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
+                                    await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                        BigNumber.from(2), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     let beforeLock = ethers.BigNumber.from("4392000000000");
 
@@ -843,7 +864,8 @@ describe("Whole scenario with prod contract: Day0", function () {
 
                                     await _TimeContract.setCurrentTimeIndex(182).then(tx => tx.wait());
                                     await _LogFileHash.connect(validator1).submit(validator1.address, 2, file2, file3).then(tx => tx.wait())
-                                    await _RNG.setRandomNumber(181, 0).then(tx => tx.wait());
+                                    await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                                        BigNumber.from(3), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     await expect(
                                         await _VaultContract.calcLockOfDay(181, delegator1.address)
