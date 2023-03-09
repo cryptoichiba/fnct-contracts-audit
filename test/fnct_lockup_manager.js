@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
+const { BigNumber } = ethers;
 const { deployAll, deployFNCToken } = require('./support/deploy');
 const { genUsers, sample } = require("./support/utils");
 const {indexToDouble} = require('truffle/build/791.bundled');
@@ -71,14 +72,16 @@ describe("FCNT Lockup Manager", function () {
     }
 
     const deployStakingContracts = async (index) => {
-        const { TimeContract, ValidatorContract, VaultContract, StakingContract, LogFileHash, RNG, RewardContract } = await deployAll(
+        const { TimeContract, ValidatorContract, VaultContract, StakingContract, LogFileHash, RNG,
+            ChainlinkWrapper, ChainlinkCoordinator, RewardContract } = await deployAll(
             false,
             owner,
             {_FNCToken}
         );
         await VaultContract.setupStakingRole(StakingContract.address);
         _TimeContract = TimeContract, _ValidatorContract = ValidatorContract, _VaultContract = VaultContract,
-            _StakingContract = StakingContract, _LogFileHash = LogFileHash, _RNG = RNG, _RewardContract = RewardContract;
+            _StakingContract = StakingContract, _LogFileHash = LogFileHash, _RNG = RNG,
+            _ChainlinkWrapper = ChainlinkWrapper, _ChainlinkCoordinator = ChainlinkCoordinator, _RewardContract = RewardContract;
 
         await _ValidatorContract.connect(owner).addValidator(validator1.address, '0x00', 10 ** 5);
         await _ValidatorContract.connect(owner).addValidator(validator2.address, '0x00', 10 ** 5);
@@ -326,7 +329,12 @@ describe("FCNT Lockup Manager", function () {
                 await _LogFileHash.connect(validator1).submit(validator1.address, 0, file0, file1);
                 await _LogFileHash.connect(validator2).submit(validator2.address, 1, file1, file2);
                 await _LogFileHash.connect(validator3).submit(validator3.address, 1, file1, file2);
-                await _RNG.setRandomNumber(1, 0);
+                // Day 2 lottery results send
+                // (Day 1 had no winner, since no submit()s occured on Day 0, so this is the first
+                // random number request.
+                // Hence, Request ID is 1 ( VRFCoordinatorV2Mock.sol assigns IDs [1,2,3...])
+                await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                    BigNumber.from(1), _ChainlinkWrapper.address, [0])
             });
 
             it("Success: 報酬受取りはでき、メンバーウォレットのトークン残高に反映される(ステーキング仕様通り)", async function() {

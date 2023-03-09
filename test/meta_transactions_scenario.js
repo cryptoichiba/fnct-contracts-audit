@@ -86,7 +86,7 @@ describe("Meta Transaction: Day0", function () {
             await _LogFileHash.connect(validator1).submit(validator1.address, 1, file1, file2);
             await _LogFileHash.connect(validator2).submit(validator2.address, 2, file2, file3);
 
-            // Send "0" as random number for day 1 request
+            // Day 2 lottery results send
             // Request ID is 2 ( VRFCoordinatorV2Mock.sol assigns IDs [1,2,3...]
             await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
                 BigNumber.from(2), _ChainlinkWrapper.address, [0])
