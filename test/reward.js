@@ -1,7 +1,7 @@
 const {expect} = require('chai');
 const {ethers} = require('hardhat');
 const { deployLogFileHash, deployTimeContract, deployStakingContract, deployFNCToken, deployVaultContract,
-  deployValidatorContract, deployRewardContract
+  deployValidatorContract, deployRewardContract, deployRNG
 } = require('./support/deploy');
 
 describe('RewardContract', (_) => {
@@ -12,6 +12,7 @@ describe('RewardContract', (_) => {
   let _VaultContract = null;
   let _ValidatorContract = null;
   let _LogFileHash = null;
+  let _RNG = null, _ChainlinkWrapper = null, _ChainlinkCoordinator = null;
   let owner, validator1, validator2, validator3, delegator1, delegator2, delegator3;
   let WinnerStatus = {
     Decided: 0,
@@ -29,7 +30,8 @@ describe('RewardContract', (_) => {
     _VaultContract = await deployVaultContract(_TimeContract, _FNCToken, false, owner);
     _ValidatorContract = await deployValidatorContract(_TimeContract, false, owner);
     _StakingContract = await deployStakingContract(_TimeContract, _FNCToken, _VaultContract, _ValidatorContract, false, owner);
-    _LogFileHash = await deployLogFileHash(_TimeContract, _StakingContract, _ValidatorContract, null, true, owner);
+    [_RNG, _ChainlinkWrapper, _ChainlinkCoordinator] = await deployRNG(_TimeContract, true, owner);
+    _LogFileHash = await deployLogFileHash(_TimeContract, _StakingContract, _ValidatorContract, _RNG, true, owner);
     _RewardContract = await deployRewardContract(_TimeContract, _FNCToken, _StakingContract, _ValidatorContract, _VaultContract, _LogFileHash, false, owner);
 
     // setup pool

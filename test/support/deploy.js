@@ -107,18 +107,6 @@ const deployStakingContract = async (
 const deployRNG = async (_TimeContract = null, useMock = false, _deployer = null) => {
   const deployer = _deployer || await getDefaultDeployer();
 
-  // If creating mock contracts, can immediately create and return
-  if (useMock) {
-    const rngFactory = await ethers.getContractFactory('MockRandomNumberGenerator', deployer);
-    const RNGContract = await rngFactory.deploy(
-        "0xb0897686c545045aFc77CF20eC7A532E3120E0F1", // Polygon Mainnet LINK token address (Mock ignores it though)
-        "0x4e42f0adEB69203ef7AaA4B7c414e5b1331c14dc",  // Polygon Mainnet LINK VRF wrapper address (Mock ignores it though)
-        40
-    );
-    await RNGContract.deployed();
-    return RNGContract;
-  }
-
   // TimeContract creation (if needed)
   const TimeContract = _TimeContract || await deployTimeContract(5, useMock, deployer);
 
@@ -151,7 +139,19 @@ const deployRNG = async (_TimeContract = null, useMock = false, _deployer = null
           LINK_MAX_NUM_WORDS
       )
 
-  // RandomNumberGenerator creation
+  // If using mock, can just create and return
+  if (useMock) {
+    const rngFactory = await ethers.getContractFactory('MockRandomNumberGenerator', deployer);
+    const RNGContract = await rngFactory.deploy(
+        "0xb0897686c545045aFc77CF20eC7A532E3120E0F1", // Polygon Mainnet LINK token address (Mock ignores it though)
+        "0x4e42f0adEB69203ef7AaA4B7c414e5b1331c14dc",  // Polygon Mainnet LINK VRF wrapper address (Mock ignores it though)
+        40
+    );
+    await RNGContract.deployed();
+    return [RNGContract, WrapperContract, CoordinatorContract];
+  }
+
+  // Otherwise, create real RandomNumberGenerator
   const rngFactory = await ethers.getContractFactory('RandomNumberGenerator', deployer);
   const RNGContract = await rngFactory.deploy(LinkContract.address, WrapperContract.address, 30, TimeContract.address);
   await RNGContract.deployed();
@@ -169,7 +169,7 @@ const deployRNG = async (_TimeContract = null, useMock = false, _deployer = null
   // Note: "1" is the wrapper's subscription id
   await CoordinatorContract.connect(deployer).fundSubscription(1, LINK_ONE_HUNDRED)
 
-  return RNGContract;
+  return [RNGContract, WrapperContract, CoordinatorContract];
 };
 
 const deployLogFileHash = async(
@@ -184,7 +184,7 @@ const deployLogFileHash = async(
   const TimeContract = _TimeContract || await deployTimeContract(5, useMock, deployer);
   const StakingContract = _StakingContract;
   const ValidatorContract = _ValidatorContract || await deployValidatorContract(TimeContract, useMock, deployer);
-  const RNG = _RNG || await deployRNG(TimeContract, useMock, deployer);
+  const RNG = _RNG;
 
   const contractName = useMock ? 'MockLogFileHash' : 'LogFileHash';
   const factory = await ethers.getContractFactory(contractName, deployer);
@@ -251,6 +251,8 @@ const deployAll = async (useMock = false, _deployer = null, preparedContracts = 
     _StakingContract,
     _LogFileHash,
     _RNG,
+    _ChainlinkCoordinator,
+    _ChainlinkWrapper,
     _RewardContract,
   } = preparedContracts;
 
@@ -273,7 +275,12 @@ const deployAll = async (useMock = false, _deployer = null, preparedContracts = 
     useMock,
     deployer
   );
-  const RNG = _RNG || await deployRNG(TimeContract, useMock, deployer);
+  //RNG, ChainlinkWrapper, ChainlinkCoordinator are created as a set
+  assert((_RNG && _ChainlinkWrapper && _ChainlinkCoordinator) || (!_RNG && !_ChainlinkWrapper && !_ChainlinkCoordinator))
+  RNG = _RNG, ChainlinkWrapper = _ChainlinkWrapper, ChainlinkCoordinator = _ChainlinkCoordinator;
+  if(!_RNG) {
+    [RNG, ChainlinkWrapper, ChainlinkCoordinator]  = await deployRNG(TimeContract, useMock, deployer);
+  }
   const LogFileHash = _LogFileHash || await deployLogFileHash(
     TimeContract,
     StakingContract,
@@ -298,6 +305,8 @@ const deployAll = async (useMock = false, _deployer = null, preparedContracts = 
     VaultContract,
     StakingContract,
     RNG,
+    ChainlinkWrapper,
+    ChainlinkCoordinator,
     LogFileHash,
     RewardContract,
   };
