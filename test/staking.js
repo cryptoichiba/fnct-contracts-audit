@@ -199,4 +199,46 @@ describe('StakingContract', () => {
 
     })
   })
+
+  describe('Exploit: Delegator voting power never reduced when unlocked', async () => {
+    it('Reverted with panic code 0x11(overflow)', async () => {
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _StakingContract.connect(owner).lockAndDelegate(amount, validator1.address);
+      await _TimeContract.setCurrentTimeIndex(182);
+      await _StakingContract.connect(owner).unlock(amount);
+      await _FNCToken.connect(owner).approve(_VaultContract.address, amount);
+      await _StakingContract.connect(owner).lockAndDelegate(amount, validator1.address);
+    })
+
+    it('The amount after re-delegating after stakes are unlocked should be double the initial amount', async () => {
+      /*
+        1. Bob locks X tokens with validator1 on day 1
+        2. Fast forward 180 days in the future, Bob unlocks their X tokens. The amount is reduced from
+        validator1's voting power but Bob's _validationPowerByDelegator entry is never reduced, so he
+        still has their X tokens power in there.
+        3. On the next day (or any time really), Alice decides to stake X tokens with validator1 too (for simplicity).
+        4. Bob also decides to stake their X tokens, this time with validator2. Calling lockAndDelegate() will result
+        in reducing Bobs previous voting power (X tokens) from validator1 (again). This also means that their previous
+        voting power plus X amount (2 times X basically in this case) will be assigned to validator2.
+      */
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _StakingContract.connect(owner).lockAndDelegate(amount, validator1.address);
+      let totalDelegatedToValidator1 = await _StakingContract.connect(owner).getTotalDelegatedTo(1, validator1.address);
+      expect(totalDelegatedToValidator1).to.equal(amount);
+      await _TimeContract.setCurrentTimeIndex(182);
+      await _StakingContract.connect(owner).unlock(amount);
+      totalDelegatedToValidator1 = await _StakingContract.connect(owner).getTotalDelegatedTo(182, validator1.address);
+      expect(totalDelegatedToValidator1).to.equal(0);
+      await _TimeContract.setCurrentTimeIndex(183);
+      await _StakingContract.connect(delegator1).lockAndDelegate(amount, validator1.address); // Bypass the amount not being updated for now
+      await _FNCToken.connect(owner).approve(_VaultContract.address, amount);
+      await _StakingContract.connect(owner).lockAndDelegate(amount, validator2.address);
+      totalDelegatedToValidator1 = await _StakingContract.connect(owner).getTotalDelegatedTo(183, validator1.address);
+      const totalDelegatedToValidator2 = await _StakingContract.connect(owner).getTotalDelegatedTo(183, validator2.address);
+
+      // Before fixing the issue #2/QSP-3, VP1 becomes 0 and VP2 becomes amount * 2
+      expect(totalDelegatedToValidator1).to.equal(amount * BigInt(1)); // 0 +amount -amount +amount should be amount * 1
+      expect(totalDelegatedToValidator2).to.equal(amount * BigInt(1)); // 0 +amount should be amount * 1
+    })
+  });
 });
