@@ -139,7 +139,7 @@ const deployRNG = async (_TimeContract = null, useMock = false, _deployer = null
           LINK_MAX_NUM_WORDS
       )
 
-  // Otherwise, create real RandomNumberGenerator
+  // RandomNumberGenerator creation
   const rngFactory = await ethers.getContractFactory('RandomNumberGenerator', deployer);
   const RNGContract = await rngFactory.deploy(LinkContract.address, WrapperContract.address, 30, TimeContract.address);
   await RNGContract.deployed();
