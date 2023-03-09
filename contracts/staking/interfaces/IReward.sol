@@ -56,7 +56,8 @@ interface IReward is IFixedReward {
         bool isJoined;
         bool isValid;
         bool isElected;
-        uint rewardAmount;
+        uint dailyBudget;
+        uint commissionAmount;
     }
 
     /// view functions

@@ -96,10 +96,10 @@ contract MockRewardContract is IReward, Ownable, TicketUtils {
         validator; startDate; nRecords;
 
         ValidationHistory[] memory output = new ValidationHistory[](4);
-        output[0] = ValidationHistory(4, true, true, true, 30 * 10 ** 18);
-        output[1] = ValidationHistory(3, true, true, false, 10 * 10 ** 18);
-        output[2] = ValidationHistory(2, true, false, false, 20 * 10 ** 18);
-        output[3] = ValidationHistory(1, false, false, false, 0);
+        output[0] = ValidationHistory(4, true, true, true, 30 * 10 ** 18, 6 * 10 ** 18);
+        output[1] = ValidationHistory(3, true, true, false, 10 * 10 ** 18, 2 * 10 ** 18);
+        output[2] = ValidationHistory(2, true, false, false, 20 * 10 ** 18, 4 * 10 ** 18);
+        output[3] = ValidationHistory(1, false, false, false, 0, 0);
 
         return output;
     }

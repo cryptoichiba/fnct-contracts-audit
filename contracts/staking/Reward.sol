@@ -428,20 +428,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
                 majority = true;
             }
 
-            bool win;
-            uint256 reward;
-            address winner;
-            WinnerStatus status;
-            (winner, status) = _logFileHash.getWinner(day);
-            if ( status == WinnerStatus.Decided && validator == winner ) {
-                win = true;
-                reward = getDailyStakingRewardsAmount(day);
-            } else {
-                win = false;
-                reward = 0;
-            }
-
-            temporary[recordCount] = ValidationHistory(day, participated, majority, win, reward);
+            temporary[recordCount] = _getValidationHistoryOfDay(day, validator, participated, majority);
             recordCount++;
 
             if ( day == 0 ) {
@@ -455,6 +442,36 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
         }
 
         return output;
+    }
+
+    function _getValidationHistoryOfDay(
+        uint day,
+        address validator,
+        bool participated,
+        bool majority
+    ) internal view returns(ValidationHistory memory) {
+        bool win;
+        uint256 budget;
+        uint256 commission;
+        address winner;
+        WinnerStatus status;
+        (winner, status) = _logFileHash.getWinner(day);
+
+        StakingCommissionRecord memory commissionRecord;
+        WinnerStatus status2;
+        (commissionRecord, status2) = _calcAvailableStakingCommissionAmountOfDay(day, validator);
+
+        if ( status == WinnerStatus.Decided && status2 == WinnerStatus.Decided && validator == winner ) {
+            win = true;
+            budget = getDailyStakingRewardsAmount(day);
+            commission = commissionRecord.amount;
+        } else {
+            win = false;
+            budget = 0;
+            commission = 0;
+        }
+
+        return ValidationHistory(day, participated, majority, win, budget, commission);
     }
 
     function _include(address[] memory array, address element) internal pure returns(bool) {
