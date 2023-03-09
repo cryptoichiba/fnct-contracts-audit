@@ -139,18 +139,6 @@ const deployRNG = async (_TimeContract = null, useMock = false, _deployer = null
           LINK_MAX_NUM_WORDS
       )
 
-  // If using mock, can just create and return
-  if (useMock) {
-    const rngFactory = await ethers.getContractFactory('MockRandomNumberGenerator', deployer);
-    const RNGContract = await rngFactory.deploy(
-        "0xb0897686c545045aFc77CF20eC7A532E3120E0F1", // Polygon Mainnet LINK token address (Mock ignores it though)
-        "0x4e42f0adEB69203ef7AaA4B7c414e5b1331c14dc",  // Polygon Mainnet LINK VRF wrapper address (Mock ignores it though)
-        40
-    );
-    await RNGContract.deployed();
-    return [RNGContract, WrapperContract, CoordinatorContract];
-  }
-
   // Otherwise, create real RandomNumberGenerator
   const rngFactory = await ethers.getContractFactory('RandomNumberGenerator', deployer);
   const RNGContract = await rngFactory.deploy(LinkContract.address, WrapperContract.address, 30, TimeContract.address);
