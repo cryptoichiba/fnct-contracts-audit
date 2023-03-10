@@ -2,6 +2,7 @@ const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { program } = require('commander');
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { BigNumber } = ethers;
 const { deployAll } = require("./support/deploy");
 const { genUsers, sample } = require("./support/utils");
 
@@ -16,6 +17,8 @@ const deployFixture = async () => {
         TimeContract,
         LogFileHash,
         RNG,
+        ChainlinkWrapper,
+        ChainlinkCoordinator,
         RewardContract
     } = await deployAll(false, owner);
 
@@ -36,6 +39,8 @@ const deployFixture = async () => {
         TimeContract,
         LogFileHash,
         RNG,
+        ChainlinkWrapper,
+        ChainlinkCoordinator,
         RewardContract
     };
 };
@@ -100,6 +105,8 @@ describe("Performance: Pattern of increasing number of users", () => {
             TimeContract,
             LogFileHash,
             RNG,
+            ChainlinkWrapper,
+            ChainlinkCoordinator,
             RewardContract
         } = await loadFixture(deployFixture);
 
@@ -133,8 +140,9 @@ describe("Performance: Pattern of increasing number of users", () => {
                 await LogFileHash.connect(validators[1]).submit(validators[1].address, day, file1, file2);
                 await LogFileHash.connect(validators[2]).submit(validators[2].address, day, file1, file2);
 
-                // Gen previous day's seed
-                await RNG.setRandomNumber(day - 1, 0);
+                // Gen previous day's seed (Request ID is (day-1)+1 ( VRFCoordinatorV2Mock.sol assigns IDs [1,2,3...] )
+                await ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                    BigNumber.from(day), ChainlinkWrapper.address, [0])
 
                 await LogFileHash.getMajority(day - 1);
             }

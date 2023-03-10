@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
+const { BigNumber } = ethers;
 const { deployRNG, deployTimeContract } = require("./support/deploy");
 
 // Test of random number generation using Chainlink.
@@ -148,24 +149,33 @@ describe('RNGContract', () => {
     describe('Exploit: No More Staking Rewards After 30 Days', async () => {
         it("Fail: Simulate on the mock", async () => {
             const _TimeContract = await deployTimeContract(5, true);
-            const _RNG = await deployRNG(_TimeContract);
+            [_RNG, _ChainlinkWrapper, _ChainlinkCoordinator] = await deployRNG(_TimeContract);
+
+            const [deployerAccount] = await ethers.getSigners();
+            _RNG.setRequester(deployerAccount.address)
+
             await _TimeContract.setCurrentTimeIndex(30);
             await _RNG.requestRandomWords(30, 100);
-            await _RNG.setRandomNumber(30, 0);
+            await _ChainlinkCoordinator.fulfillRandomWordsWithOverride(
+                BigNumber.from(1), _ChainlinkWrapper.address, [0])
 
             await _TimeContract.setCurrentTimeIndex(31);
             await _RNG.requestRandomWords(31, 100);
+            await _ChainlinkCoordinator.fulfillRandomWordsWithOverride(
+                    BigNumber.from(2), _ChainlinkWrapper.address, [31])
             await expect(
-              _RNG.setRandomNumber(31, 0)
-            ).not.to.be.reverted;
+                await _RNG.getRandomNumber(31)
+            ).to.be.equal(31);
 
             await _TimeContract.setCurrentTimeIndex(32);
             await _RNG.requestRandomWords(32, 100);
 
             await _TimeContract.setCurrentTimeIndex(63);
+            await _ChainlinkCoordinator.fulfillRandomWordsWithOverride(
+                BigNumber.from(3), _ChainlinkWrapper.address, [32])
             await expect(
-              _RNG.setRandomNumber(32, 0)
-            ).to.be.revertedWith('RandomNumber: Callback was received after abandoned');
+                _RNG.getRandomNumber(32)
+            ).to.be.revertedWith('RandomNumber: Not generated the number yet');
         })
     })
 });

@@ -11,6 +11,7 @@ describe('LogFileHash', () => {
   let _ValidatorContract;
   let _StakingContract;
   let _LogFileHash;
+  let _RNG, _ChainlinkWrapper, _ChainlinkCoordinator;
   let owner, delegator1, delegator2;
   let validator1, validator2, validator3;
   let nobody, submitter;
@@ -24,7 +25,7 @@ describe('LogFileHash', () => {
     _VaultContract = await deployVaultContract(_TimeContract, _FNCToken, false, owner);
     _ValidatorContract = await deployValidatorContract(_TimeContract, false, owner);
     _StakingContract = await deployStakingContract(_TimeContract, _FNCToken, _VaultContract, _ValidatorContract, false, owner);
-    _RNG = await deployRNG(_TimeContract, true, owner);
+    [_RNG, _ChainlinkWrapper, _ChainlinkCoordinator] = await deployRNG(_TimeContract, true, owner);
     _LogFileHash = await deployLogFileHash(_TimeContract, _StakingContract, _ValidatorContract, _RNG, false, owner);
 
     await _VaultContract.setupStakingRole(_StakingContract.address);

@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
+const { BigNumber } = ethers;
 const { genInstantSigner } = require("./support/utils");
 const {
   createStakingRewardTransferTicket,
@@ -11,15 +12,18 @@ const {deployAll} = require('./support/deploy');
 const {constants} = require("@openzeppelin/test-helpers");
 
 describe("Meta Transaction: Day0", function () {
-    let _TimeContract, _FNCToken, _ValidatorContract, _VaultContract, _StakingContract, _LogFileHash, _RNG, _RewardContract;
+    let _TimeContract, _FNCToken, _ValidatorContract, _VaultContract, _StakingContract, _LogFileHash, _RNG,
+        _ChainlinkWrapper, _ChainlinkCoordinator, _RewardContract;
     let owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, delegator4, nobody, worker;
 
     beforeEach(async function() {
         [owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, delegator4, nobody, worker, signer] = await ethers.getSigners();
-        const { TimeContract, FNCToken, ValidatorContract, VaultContract, StakingContract, LogFileHash, RNG, RewardContract } = await deployAll(false, owner);
+        const { TimeContract, FNCToken, ValidatorContract, VaultContract, StakingContract, LogFileHash, RNG,
+                ChainlinkWrapper, ChainlinkCoordinator, RewardContract } = await deployAll(false, owner);
         await VaultContract.setupStakingRole(StakingContract.address);
         _TimeContract = TimeContract, _FNCToken = FNCToken, _ValidatorContract = ValidatorContract, _VaultContract = VaultContract,
-            _StakingContract = StakingContract, _LogFileHash = LogFileHash, _RNG = RNG, _RewardContract = RewardContract;
+            _StakingContract = StakingContract, _LogFileHash = LogFileHash, _RNG = RNG,
+            _ChainlinkWrapper = ChainlinkWrapper, _ChainlinkCoordinator = ChainlinkCoordinator, _RewardContract = RewardContract;
     });
 
     describe("Step: After setup", function () {
@@ -83,7 +87,10 @@ describe("Meta Transaction: Day0", function () {
             await _LogFileHash.connect(validator1).submit(validator1.address, 1, file1, file2);
             await _LogFileHash.connect(validator2).submit(validator2.address, 2, file2, file3);
 
-            await _RNG.setRandomNumber(1, 0);
+            // Day 2 lottery results send
+            // Request ID is 2 ( VRFCoordinatorV2Mock.sol assigns IDs [1,2,3...]
+            await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+                BigNumber.from(2), _ChainlinkWrapper.address, [0])
         });
 
         it("Success: Get Reward(Meta tx / valid ticket)", async function () {
