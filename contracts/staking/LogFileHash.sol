@@ -108,6 +108,11 @@ contract LogFileHash is ILogFileHash, ReentrancyGuard {
             return (address(0), WinnerStatus.NoSubmissionToday);
         }
 
+        // No winner: in case of no majority hash
+        if ( _majorityValidators[day].length == 0 ) {
+            return (address(0), WinnerStatus.NoMajority);
+        }
+
         // Pending winner: rng processing
         if ( !_rng.hadGeneratedNumber(day) ) {
             uint today = _timeContract.getCurrentTimeIndex();
@@ -117,11 +122,6 @@ contract LogFileHash is ILogFileHash, ReentrancyGuard {
             } else {
                 return (address(0), WinnerStatus.Pending);
             }
-        }
-
-        // No winner: in case of no majority hash
-        if ( _majorityValidators[day].length == 0 ) {
-            return (address(0), WinnerStatus.NoMajority);
         }
 
         // Select winner: from majority hash

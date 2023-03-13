@@ -1,5 +1,6 @@
 const {expect} = require('chai');
 const {ethers} = require('hardhat');
+const { BigNumber } = ethers;
 const {deployLogFileHash, deployRNG, deployStakingContract, deployTimeContract, deployFNCToken, deployVaultContract,
   deployValidatorContract, WinnerStatus
 } = require('./support/deploy');
@@ -89,6 +90,155 @@ describe('LogFileHash', () => {
         _ValidatorContract.connect(nobody).setSubmitter(submitter.address)
     ).to.be.revertedWith("Validator: Caller is not validator or disabled");
   })
+
+  describe("Each status", function () {
+    it("Decided: regular situation", async function () {
+      await _StakingContract.connect(delegator1).lockAndDelegate(amount, validator1.address);
+      await _StakingContract.connect(delegator2).lockAndDelegate(amount, validator2.address);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+      await _LogFileHash.connect(validator2).submit(validator2.address, 0, '0x01', '0x02');
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+
+      await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+        BigNumber.from(1), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
+
+      await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([validator1.address, WinnerStatus.Decided].toString());
+    });
+
+    it("NoWinnerForFutureDate: today", async function () {
+      await _TimeContract.setCurrentTimeIndex(1);
+
+      await expect((await _LogFileHash.getWinner(1)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoWinnerForFutureDate].toString());
+    });
+
+    it("NoWinnerForFutureDate: tomorrow", async function () {
+      await _TimeContract.setCurrentTimeIndex(1);
+
+      await expect((await _LogFileHash.getWinner(2)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoWinnerForFutureDate].toString());
+    });
+
+    it("NoMajority: vote-splitting", async function () {
+      await _StakingContract.connect(delegator1).lockAndDelegate(amount, validator1.address);
+      await _StakingContract.connect(delegator2).lockAndDelegate(amount, validator2.address);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+      await _LogFileHash.connect(validator2).submit(validator2.address, 0, '0x0102', '0x02');
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+
+      await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoMajority].toString());
+    });
+
+    it("NoMajority: no-submission", async function () {
+      await _StakingContract.connect(delegator1).lockAndDelegate(amount, validator1.address);
+      await _StakingContract.connect(delegator2).lockAndDelegate(amount, validator2.address);
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+
+      await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoMajority].toString());
+    });
+
+    it("NoMajority: no-delegation", async function () {
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+      await _LogFileHash.connect(validator2).submit(validator2.address, 0, '0x01', '0x02');
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+
+      await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoMajority].toString());
+    });
+
+    it("NoSubmissionToday: no submission for yesterday's request", async function () {
+      await _StakingContract.connect(delegator1).lockAndDelegate(amount, validator1.address);
+      await _StakingContract.connect(delegator2).lockAndDelegate(amount, validator2.address);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+      await _LogFileHash.connect(validator2).submit(validator2.address, 0, '0x01', '0x02');
+      await _TimeContract.setCurrentTimeIndex(1);
+
+      await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoSubmissionToday].toString());
+    });
+
+    it("Pending: before fulfill", async function () {
+      await _StakingContract.connect(delegator1).lockAndDelegate(amount, validator1.address);
+      await _StakingContract.connect(delegator2).lockAndDelegate(amount, validator2.address);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+      await _LogFileHash.connect(validator2).submit(validator2.address, 0, '0x01', '0x02');
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+
+      await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.Pending].toString());
+    });
+
+    it("Abandon: fulfilled after 30 days", async function () {
+      await _StakingContract.connect(delegator1).lockAndDelegate(amount, validator1.address);
+      await _StakingContract.connect(delegator2).lockAndDelegate(amount, validator2.address);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+      await _LogFileHash.connect(validator2).submit(validator2.address, 0, '0x01', '0x02');
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+
+      await _TimeContract.setCurrentTimeIndex(32);
+
+      await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+        BigNumber.from(1), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
+
+      await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.Abandoned].toString());
+    });
+
+    it("Abandon: request not fulfilled more than 30 days", async function () {
+      await _StakingContract.connect(delegator1).lockAndDelegate(amount, validator1.address);
+      await _StakingContract.connect(delegator2).lockAndDelegate(amount, validator2.address);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+      await _LogFileHash.connect(validator2).submit(validator2.address, 0, '0x01', '0x02');
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+
+      await _TimeContract.setCurrentTimeIndex(31);
+
+      await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.Abandoned].toString());
+    });
+
+  });
+
+  describe("Repro: #2/QSP-17 NoMajority Will Never Be Returned as a Possible Winner State", function () {
+    it("No submission causes no majority", async function () {
+      await _StakingContract.connect(delegator1).lockAndDelegate(amount, validator1.address);
+      await _StakingContract.connect(delegator2).lockAndDelegate(amount, validator2.address);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+      await _LogFileHash.connect(validator2).submit(validator2.address, 0, '0x01', '0x02');
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02');
+
+      // Send random number "0" for Chainlink RequestId 1
+      // (VRFCoordinatorV2Mock.sol assigns RequestIds [1,2,3...])
+      await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+        BigNumber.from(1), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
+
+      await _TimeContract.setCurrentTimeIndex(181).then(tx => tx.wait());
+      await _LogFileHash.connect(validator1).submit(validator1.address, 1, '0x02', '0x03').then(tx => tx.wait())
+
+      // Send random number "0" for Chainlink RequestId 2
+      // (VRFCoordinatorV2Mock.sol assigns RequestIds [1,2,3...])
+      await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+        BigNumber.from(2), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
+
+      await _TimeContract.setCurrentTimeIndex(182).then(tx => tx.wait());
+      await _LogFileHash.connect(validator1).submit(validator1.address, 2, '0x02', '0x03').then(tx => tx.wait())
+
+      // Send random number "0" for Chainlink RequestId 3
+      // (VRFCoordinatorV2Mock.sol assigns RequestIds [1,2,3...])
+      // But will be abandoned after 180 days (> 30 days)
+      await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
+        BigNumber.from(3), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
+
+      await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([validator1.address, WinnerStatus.Decided].toString());
+      await expect((await _LogFileHash.getWinner(1)).toString()).to.equal([validator1.address, WinnerStatus.Decided].toString());
+      await expect((await _LogFileHash.getWinner(2)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoMajority].toString());
+      await expect((await _LogFileHash.getWinner(179)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoMajority].toString());
+      await expect((await _LogFileHash.getWinner(180)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoMajority].toString());
+      await expect((await _LogFileHash.getWinner(181)).toString()).to.equal([validator1.address, WinnerStatus.Decided].toString());
+      await expect((await _LogFileHash.getWinner(182)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoWinnerForFutureDate].toString());
+    });
+  });
 
   describe('getMajority', async () => {
     context('no submit on the day', async () => {

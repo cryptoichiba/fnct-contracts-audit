@@ -793,7 +793,7 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     // Send random number "0" for Chainlink RequestId 2
                                     // (VRFCoordinatorV2Mock.sol assigns RequestIds [1,2,3...])
                                     await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
-                                      BigNumber.from(2), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
+                                        BigNumber.from(2), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     let beforeLock = ethers.BigNumber.from("4392000000000");
 
@@ -814,14 +814,6 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     // But will be abandoned after 180 days (> 30 days)
                                     await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
                                         BigNumber.from(3), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
-
-                                    await expect((await _RewardContract.calcAvailableStakingRewardAmountOfDay(0, delegator1.address))[1]).to.equal(WinnerStatus.Decided)
-                                    await expect((await _RewardContract.calcAvailableStakingRewardAmountOfDay(1, delegator1.address))[1]).to.equal(WinnerStatus.Decided)
-                                    await expect((await _RewardContract.calcAvailableStakingRewardAmountOfDay(2, delegator1.address))[1]).to.equal(WinnerStatus.Abandoned)
-                                    await expect((await _RewardContract.calcAvailableStakingRewardAmountOfDay(179, delegator1.address))[1]).to.equal(WinnerStatus.Pending)
-                                    await expect((await _RewardContract.calcAvailableStakingRewardAmountOfDay(180, delegator1.address))[1]).to.equal(WinnerStatus.Pending)
-                                    await expect((await _RewardContract.calcAvailableStakingRewardAmountOfDay(181, delegator1.address))[1]).to.equal(WinnerStatus.Decided)
-                                    await expect((await _RewardContract.calcAvailableStakingRewardAmountOfDay(182, delegator1.address))[1]).to.equal(WinnerStatus.NoWinnerForFutureDate)
 
                                     await expect(
                                         await _VaultContract.calcLockOfDay(181, delegator1.address)
@@ -876,7 +868,7 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     // (VRFCoordinatorV2Mock.sol assigns RequestIds [1,2,3...])
                                     // But will be abandoned after 180 days (> 30 days)
                                     await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
-                                      BigNumber.from(2), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
+                                        BigNumber.from(2), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     let beforeLock = ethers.BigNumber.from("4392000000000");
 
