@@ -47,6 +47,8 @@ contract RandomNumberGenerator is VRFV2WrapperConsumerBase, AccessControl, Confi
     // Chainlink and system is free to put lottery into WinnerStatus.Abandoned.
     uint private constant _abandonDaysAfterRequesting = 30;
 
+    uint private _maxPaid = 0;
+
     /// @notice Constructor
     /// @param linkAddress Address of Chainlink LinkToken
     /// @param wrapperAddress Address of Chainlink VRFV2Wrapper contract
@@ -120,9 +122,13 @@ contract RandomNumberGenerator is VRFV2WrapperConsumerBase, AccessControl, Confi
         requests[requestId] = status;
         lastRequestId = requestId;
 
+        if ( _maxPaid > status.paid ) {
+            _maxPaid = status.paid;
+        }
+
         // Link token balance warning when the token balance < 30 requests
         uint256 balance = LINK.balanceOf(address(this));
-        if ( balance < status.paid * 30 ) {
+        if ( balance < _maxPaid * 30 ) {
             emit LinkTokenBalanceTooLow(balance);
         }
 
