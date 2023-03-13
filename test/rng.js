@@ -158,6 +158,19 @@ describe('RNGContract', () => {
 
     });
 
+    it('Fail: Fulfill random words before request', async() => {
+        const _TimeContract = await deployTimeContract(5, true);
+        [_RNG, _ChainlinkWrapper, _ChainlinkCoordinator] = await deployRNG(_TimeContract);
+
+        const [deployerAccount] = await ethers.getSigners();
+        await _RNG.setRequester(deployerAccount.address);
+
+        await _TimeContract.setCurrentTimeIndex(30);
+        await expect(
+            _ChainlinkCoordinator.fulfillRandomWordsWithOverride(BigNumber.from(1), _ChainlinkWrapper.address, [0])
+        ).to.be.revertedWith("nonexistent request");
+    });
+
     describe('Exploit: No More Staking Rewards After 30 Days', async () => {
         it("Fail: Simulate on the mock", async () => {
             const _TimeContract = await deployTimeContract(5, true);
