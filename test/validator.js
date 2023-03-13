@@ -51,7 +51,7 @@ describe("Validator", function () {
         });
     });
 
-    describe.only("Manage", async () => {
+    describe("Manage", async () => {
         beforeEach(async () => {
             await _ValidatorContract.connect(owner).addValidator(validator1.address, '0x00', 10 ** 5);
         });
