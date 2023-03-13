@@ -6,7 +6,7 @@ import "./interfaces/IValidator.sol";
 import "./utils/ArrayUtils.sol";
 import "./utils/UnrenounceableOwnable.sol";
 
-contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
+contract ValidatorContract is IValidator, UnrenounceableOwnable {
     ITime private immutable _timeContract;
 
     mapping(address => Validator) _validators;
@@ -93,7 +93,7 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
             }
         }
 
-        return _trim(activeValidator, count);
+        return ArrayUtils.trim(activeValidator, count);
     }
 
     /**

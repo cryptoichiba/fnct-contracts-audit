@@ -3,10 +3,9 @@ pragma solidity 0.8.16;
 
 import "../interfaces/IReward.sol";
 import "../interfaces/IStaking.sol";
-import "../utils/TicketUtils.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract MockRewardContract is IReward, Ownable, TicketUtils {
+contract MockRewardContract is IReward, Ownable {
     uint _launchDate;
     IStaking _stakingContract;
     mapping(address => StakingRewardRecord[]) _rewardHistory;
@@ -36,7 +35,7 @@ contract MockRewardContract is IReward, Ownable, TicketUtils {
         return 2234 ether * 5 / 100;
     }
 
-    function calcAvailableStakingRewardAmountOfDay(uint day, address user) public view returns(StakingRewardRecord memory, WinnerStatus) {
+    function calcAvailableStakingRewardAmountOfDay(uint day, address user) public pure returns(StakingRewardRecord memory, WinnerStatus) {
         day; user;
 
         address validator = 0x0957b455E9f3B32bF75aC68d05FdEf151e192779;

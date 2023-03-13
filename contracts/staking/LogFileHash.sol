@@ -10,7 +10,7 @@ import "./utils/ArrayUtils.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract LogFileHash is ILogFileHash, ArrayUtils, ReentrancyGuard {
+contract LogFileHash is ILogFileHash, ReentrancyGuard {
     IStaking private immutable _stakingContract;
     IValidator private immutable _validatorContract;
     ITime private immutable _timeContract;
@@ -174,7 +174,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils, ReentrancyGuard {
             address[] memory emptyArray;
             return (empty, emptyArray, registered, 0);
         } else {
-            address[] memory majorities = _reverse(_trim(validators[maxKey], validatorCounters[maxKey]));
+            address[] memory majorities = ArrayUtils.reverse(ArrayUtils.trim(validators[maxKey], validatorCounters[maxKey]));
             return (hashes[maxKey], majorities, registered, maxPower);
         }
     }
@@ -190,7 +190,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils, ReentrancyGuard {
         // save unique keys
         uint count = 0;
         for ( uint i = 0; i < records.length; i++ ) {
-            if ( !_includeString(keys, records[i].key) ) {
+            if ( !ArrayUtils.includeString(keys, records[i].key) ) {
                 keys[count] = records[i].key;
                 hashes[count] = records[i].hash;
                 count++;
@@ -209,7 +209,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils, ReentrancyGuard {
 
         for ( uint i = records.length - 1; ; i-- ) {
             for ( uint j = 0; j < keys.length; j++ ) {
-                if ( _isSameString(keys[j], records[i].key) && !_includeAddress(registeredValidators, records[i].validator)) {
+                if ( ArrayUtils.isSameString(keys[j], records[i].key) && !ArrayUtils.includeAddress(registeredValidators, records[i].validator)) {
                     validators[j][validatorCounters[j]] = records[i].validator;
                     validatorCounters[j]++;
                     registeredValidators[registeredSize] = records[i].validator;
@@ -222,7 +222,7 @@ contract LogFileHash is ILogFileHash, ArrayUtils, ReentrancyGuard {
             }
         }
 
-        address[] memory registered = _reverse(_trim(registeredValidators, registeredSize));
+        address[] memory registered = ArrayUtils.reverse(ArrayUtils.trim(registeredValidators, registeredSize));
 
         return(validators, validatorCounters, registered, hashes);
     }

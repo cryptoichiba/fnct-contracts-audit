@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-contract ArrayUtils {
+library ArrayUtils {
 
-    function _includeAddress(address[] memory array, address element) pure internal returns(bool) {
+    function includeAddress(address[] memory array, address element) pure internal returns(bool) {
         for ( uint i = 0; i < array.length; i++ ) {
             if (element == array[i]) {
                 return true;
@@ -12,16 +12,16 @@ contract ArrayUtils {
         return false;
     }
 
-    function _includeString(string[] memory array, string memory element) pure internal returns(bool) {
+    function includeString(string[] memory array, string memory element) pure internal returns(bool) {
         for ( uint i = 0; i < array.length; i++ ) {
-            if (_isSameString(element, array[i])) {
+            if (isSameString(element, array[i])) {
                 return true;
             }
         }
         return false;
     }
 
-    function _isSameString(string memory a, string memory b) pure internal returns (bool) {
+    function isSameString(string memory a, string memory b) pure internal returns (bool) {
         if(bytes(a).length != bytes(b).length) {
             return false;
         } else {
@@ -29,7 +29,7 @@ contract ArrayUtils {
         }
     }
 
-    function _reverse(address[] memory elements) pure internal returns(address[] memory) {
+    function reverse(address[] memory elements) pure internal returns(address[] memory) {
         address[] memory outs = new address[](elements.length);
 
         uint count = 0;
@@ -45,7 +45,7 @@ contract ArrayUtils {
         return outs;
     }
 
-    function _trim(address[] memory elements, uint length) pure internal returns(address[] memory) {
+    function trim(address[] memory elements, uint length) pure internal returns(address[] memory) {
         address[] memory outs = new address[](length);
 
         for ( uint i = 0; i < length; i++ ) {

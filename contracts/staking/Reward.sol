@@ -13,7 +13,7 @@ import "./utils/ArrayUtils.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils, ArrayUtils {
+contract RewardContract is IReward, UnrenounceableOwnable {
     ITime private immutable _timeContract;
     IERC20 private immutable _token;
     IStaking private immutable _stakingContract;
@@ -52,7 +52,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils, ArrayUti
         if ( ticket.receiver != address(0) ) {
             address headSigner;
             address bodySigner;
-            (headSigner, bodySigner) = _recoverSigners(
+            (headSigner, bodySigner) = TicketUtils.recoverSigners(
                 ticket.receiver,
                 ticket.ticketSigner,
                 ticket.amount,
@@ -70,7 +70,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils, ArrayUti
         if ( ticket.receiver != address(0) ) {
             address headSigner;
             address bodySigner;
-            (headSigner, bodySigner) = _recoverSigners(
+            (headSigner, bodySigner) = TicketUtils.recoverSigners(
                 ticket.receiver,
                 ticket.ticketSigner,
                 ticket.accumulatedAmount,
@@ -411,11 +411,11 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils, ArrayUti
             bool participated = false;
             bool majority = false;
 
-            if ( _includeAddress(participatedValidators, validator) ) {
+            if ( ArrayUtils.includeAddress(participatedValidators, validator) ) {
                 participated = true;
             }
 
-            if ( _includeAddress(majorityValidators, validator) ) {
+            if ( ArrayUtils.includeAddress(majorityValidators, validator) ) {
                 majority = true;
             }
 

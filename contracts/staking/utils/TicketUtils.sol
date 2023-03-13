@@ -3,9 +3,9 @@ pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-contract TicketUtils {
+library TicketUtils {
 
-    function _recoverSigners(
+    function recoverSigners(
         address receiver,
         address ticketSigner,
         uint256 amount,
