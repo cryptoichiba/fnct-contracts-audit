@@ -266,27 +266,37 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable {
 
     /**
      * @notice Sets a new `submitter`.
+     * Emits a {SubmitterChanged} event.
      */
     function setSubmitter(address submitter) override external onlyValidator {
         require(submitter != address(0x0), "Validator: Submitter is zero address");
         _submitter[msg.sender] = submitter;
+
+        emit SubmitterChanged(msg.sender, submitter);
     }
 
     /**
      * @notice Sets a new commission receiver as `receiver`.
+     *
+     * Emits a {ComissionReceiverChanged} event.
      */
     function setCommissionReceiver(address receiver) override external onlyValidator {
         require(receiver != address(0x0), "Validator: Receiver is zero address");
         _commissionReceiver[msg.sender] = receiver;
+
+        emit ComissionReceiverChanged(msg.sender, receiver);
     }
 
     /**
      * @notice Updates the cache of commission rate for a `validator` on the `day`
      * @dev Basically this function should be called by the LogFileHash contract, but it's callable by anyone.
+     *
+     * Emits a {CachedComissionRateChanged} event.
      */
     function updateCommissionRateCache(uint day, address validator) override external {
         if ( day >= _timeContract.getCurrentTimeIndex() && checkIfExist(validator) ) {
             _cachedCommissionRate[validator][day] = _getCommissionRateOfDay(day, validator);
+            emit CachedComissionRateChanged(msg.sender, validator, day, _cachedCommissionRate[validator][day]);
         }
     }
 }

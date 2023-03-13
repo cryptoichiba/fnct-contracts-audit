@@ -80,4 +80,9 @@ interface ILogFileHash {
      * @dev `key` is a combination of accepted file number and the file hash joined with '-'. example: '1-0123456789abcdef'.
      */
     event HashSubmitted(uint indexed today, uint indexed fileNum, address indexed validator, address sender, bytes hash, string key);
+
+    /**
+     * @notice Emitted when `sender` updated winner's cache of `day` to (`winner`, `status`).
+     */
+    event WinnerUpdated(address indexed sender, uint day, address indexed winner, WinnerStatus indexed status);
 }

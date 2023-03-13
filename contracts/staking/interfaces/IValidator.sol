@@ -147,4 +147,19 @@ interface IValidator {
      * @notice Emitted when the commission rate allowance updated with the range from `min` to `max`.
      */
     event CommissionRateRangeUpdated(uint min, uint max);
+
+    /**
+     * @notice Emitted when `sender` changed submitter to `submitter`.
+     */
+    event SubmitterChanged(address indexed sender, address indexed submitter);
+
+    /**
+     * @notice Emitted when `sender` changed submitter to `receiver`.
+     */
+    event ComissionReceiverChanged(address indexed sender, address indexed receiver);
+
+    /**
+     * @notice Emitted when `sender` updated `validator`'s commission rate cache of `day` to `rate`.
+     */
+    event CachedComissionRateChanged(address indexed sender, address indexed validator, uint day, uint rate);
 }

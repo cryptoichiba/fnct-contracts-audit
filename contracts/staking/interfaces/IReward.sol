@@ -247,4 +247,9 @@ interface IReward is IFixedReward {
      * @notice Emitted when `amount` of rewards moved from the contract to `receiver`. `sender` is caller.
      */
     event TransferredRewards(address indexed sender, address indexed receiver, uint256 amount);
+
+    /**
+     * @notice Emitted when `sender` changed ticket signer to `signer`.
+     */
+    event TicketSignerChanged(address indexed sender, address indexed signer);
 }

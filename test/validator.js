@@ -5,7 +5,7 @@ const {deployAll, deployTimeContract, deployVaultContract, deployValidatorContra
 describe("Validator", function () {
 
     beforeEach(async () => {
-        [owner, validator1, nobody] = await ethers.getSigners();
+        [owner, validator1, nobody, operator] = await ethers.getSigners();
 
         _TimeContract = await deployTimeContract(3600, true, owner);
         _ValidatorContract = await deployValidatorContract(_TimeContract, false, owner);
@@ -51,10 +51,72 @@ describe("Validator", function () {
         });
     });
 
-    describe("Manage", async () => {
+    describe.only("Manage", async () => {
         beforeEach(async () => {
             await _ValidatorContract.connect(owner).addValidator(validator1.address, '0x00', 10 ** 5);
         });
+
+        it('Success: Submitter', async () => {
+            await expect(
+              _ValidatorContract.connect(validator1).setSubmitter(operator.address)
+            ).to.be.emit(_ValidatorContract, "SubmitterChanged").withArgs(validator1.address, operator.address);
+        })
+
+        it('Fail: Submitter is zero address', async () => {
+            await expect(
+              _ValidatorContract.connect(validator1).setSubmitter(ethers.constants.AddressZero)
+            ).to.be.revertedWith("Validator: Submitter is zero address");
+        })
+
+        it('Fail: non-validator', async () => {
+            await expect(
+              _ValidatorContract.connect(nobody).setSubmitter(nobody.address)
+            ).to.be.revertedWith("Validator: Caller is not validator or disabled");
+        })
+
+        it('Fail: disabled validator', async () => {
+            await expect(
+              _ValidatorContract.connect(owner).disableValidator(validator1.address)
+            ).to.emit(_ValidatorContract, 'ValidatorDisabled');
+
+            await expect(
+              _ValidatorContract.connect(validator1).setSubmitter(operator.address)
+            ).to.be.revertedWith("Validator: Caller is not validator or disabled");
+        })
+
+        it('Success: Receiver', async () => {
+            await expect(
+              _ValidatorContract.connect(validator1).setCommissionReceiver(operator.address)
+            ).to.be.emit(_ValidatorContract, "ComissionReceiverChanged").withArgs(validator1.address, operator.address);
+        })
+
+        it('Fail: Receiver is zero address', async () => {
+            await expect(
+              _ValidatorContract.connect(validator1).setCommissionReceiver(ethers.constants.AddressZero)
+            ).to.be.revertedWith("Validator: Receiver is zero address");
+        })
+
+        it('Fail: non-validator', async () => {
+            await expect(
+              _ValidatorContract.connect(nobody).setCommissionReceiver(nobody.address)
+            ).to.be.revertedWith("Validator: Caller is not validator or disabled");
+        })
+
+        it('Fail: disabled validator', async () => {
+            await expect(
+              _ValidatorContract.connect(owner).disableValidator(validator1.address)
+            ).to.emit(_ValidatorContract, 'ValidatorDisabled');
+
+            await expect(
+              _ValidatorContract.connect(validator1).setCommissionReceiver(operator.address)
+            ).to.be.revertedWith("Validator: Caller is not validator or disabled");
+        })
+
+        it('Success: updateCommissionRateCache', async () => {
+            await expect(
+              _ValidatorContract.connect(nobody).updateCommissionRateCache(1, validator1.address)
+            ).to.be.emit(_ValidatorContract, "CachedComissionRateChanged").withArgs(nobody.address, validator1.address, 1, 100000);
+        })
 
         it("Success: Owner can disable a validator", async function() {
             await expect(

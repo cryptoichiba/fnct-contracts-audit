@@ -340,6 +340,8 @@ contract LogFileHash is ILogFileHash, ReentrancyGuard {
                 if ( status != WinnerStatus.Pending && status != WinnerStatus.Abandoned ) {
                     _decidedWinner[day] = Winner(winner, status);
                     _isDecidedWinner[day] = true;
+
+                    emit  WinnerUpdated(msg.sender, day, winner, status);
                     break;
                 }
             }

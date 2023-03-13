@@ -172,10 +172,14 @@ contract RewardContract is IReward, UnrenounceableOwnable {
 
     /**
      * @notice Sets ticket signer for meta transactions to the `signer`.
+     * Emits a {TicketSignerChanged} event.
      */
     function setTicketSigner(address signer) override external onlyOwner {
         require(signer != address(0x0), "Reward: Signer is zero address");
+
         _ticketSigner = signer;
+
+        emit TicketSignerChanged(msg.sender, signer);
     }
 
     /// pool management
