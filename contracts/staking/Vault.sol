@@ -22,10 +22,12 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
     // Lock and unlock histories
     mapping(address => Lock[]) _lockHistory;
     mapping(address => Unlock[]) _unlockHistory;
+
     // Minimum holding period until locked tokens can be unlocked
     uint constant minimum_holding_period = 180;
 
     bytes32 public constant STAKING_ROLE = keccak256("STAKING_ROLE");
+    bool _stakingRoleInitialized = false;
 
     /**
      * @notice Constructor
@@ -41,7 +43,12 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
     }
 
     function setupStakingRole(address stakingContract) external onlyOwner {
+        require(stakingContract != address(0x0), "Vault: StakingContract is zero address");
+        require(!_stakingRoleInitialized, "Vault: StakingContract already initialized");
+
+        _stakingRoleInitialized = true;
         _grantRole(STAKING_ROLE, stakingContract);
+
     }
 
     //////////////////////////////////////////////////////////////////////////////

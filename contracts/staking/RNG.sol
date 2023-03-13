@@ -26,6 +26,7 @@ contract RandomNumberGenerator is VRFV2WrapperConsumerBase, AccessControl, Confi
     uint256 lastRequestId;
 
     bytes32 public constant REQUESTER_ROLE = keccak256("REQUESTER_ROLE");
+    bool _requesterRoleInitialized = false;
 
     // Max gas to use when Chainlink calls fulfillRandomWords()
     // For reference, experimentally detected gas usage was ~275,000gas
@@ -88,8 +89,10 @@ contract RandomNumberGenerator is VRFV2WrapperConsumerBase, AccessControl, Confi
     /// @param requester Address to whitelist
     function setRequester(address requester) external onlyOwner {
         require(requester != address(0x0), "RandomNumber: Requester is zero address");
+        require(!_requesterRoleInitialized, "Vault: StakingContract already initialized");
 
         _grantRole(REQUESTER_ROLE, requester);
+        _requesterRoleInitialized = true;
 
         emit RequesterGranted(requester);
     }

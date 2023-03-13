@@ -122,6 +122,18 @@ describe('RNGContract', () => {
             ).to.be.revertedWith('Only callable by owner');
         });
 
+        it("Setup requester", async() => {
+            // Success
+            await expect(
+              rngContract.connect(owner).setRequester(requester.address)
+            ).not.to.be.reverted;
+
+            // Fail
+            await expect(
+              rngContract.connect(owner).setRequester(owner.address)
+            ).to.be.revertedWith("Vault: StakingContract already initialized");
+        });
+
         describe("Requester", async() => {
             beforeEach(async () => {
                 await rngContract.connect(owner).setRequester(requester.address);
