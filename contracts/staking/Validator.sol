@@ -54,7 +54,7 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
      * @notice Returns whether a `validator` is valid on the system or not.
      */
     function checkIfExist(address validator) public view returns(bool) {
-        return _validators[validator].id != address(0x0) && !_validators[validator].disabled;
+        return _validators[validator].id != address(0x0) && _validators[validator].enabled;
     }
 
     /**
@@ -174,10 +174,10 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
      */
     function addValidator(address validator, bytes calldata detail, uint commissionRate) override external onlyOwner {
         require(validator != address(0x0), "Validator: Validator is zero address");
-        require(!checkIfExist(validator), "Validator: Validator is already registered");
+        require(_validators[validator].id == address(0x0), "Validator: Validator is already registered");
         require(commissionRate >= minCommission && commissionRate <= maxCommission, "Validator: Commission rate is out of range");
 
-        _validators[validator] = Validator(validator, detail, commissionRate, false);
+        _validators[validator] = Validator(validator, detail, commissionRate, true);
         _submitter[validator] = validator;
         _commissionReceiver[validator] = validator;
         _validatorList.push(validator);
@@ -194,9 +194,9 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
      */
     function enableValidator(address validator) override external onlyOwner {
         require(_validators[validator].id != address(0x0), "Validator: Validator is not registered");
-        require(_validators[validator].disabled, "Validator: Validator had been already enabled");
+        require(!_validators[validator].enabled, "Validator: Validator had been already enabled");
 
-        _validators[validator].disabled = false;
+        _validators[validator].enabled = true;
 
         emit ValidatorEnabled(validator);
     }
@@ -208,9 +208,9 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable, ArrayUtils {
      */
     function disableValidator(address validator) override external onlyOwner {
         require(_validators[validator].id != address(0x0), "Validator: Validator is not registered");
-        require(!_validators[validator].disabled, "Validator: Validator had been already disabled");
+        require(_validators[validator].enabled, "Validator: Validator had been already disabled");
 
-        _validators[validator].disabled = true;
+        _validators[validator].enabled = false;
 
         emit ValidatorDisabled(validator);
     }

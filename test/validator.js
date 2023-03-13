@@ -17,6 +17,18 @@ describe("Validator", function () {
         ).to.be.revertedWith("UnrenounceableOwnable: Can't renounce ownership");
     })
 
+    it("Fail: Should not allow overwrite validator", async function() {
+        // Success once
+        await expect(
+            _ValidatorContract.connect(owner).addValidator(validator1.address, '0x00', 100000)
+        ).not.to.be.reverted;
+
+        // Fail after registration
+        await expect(
+            _ValidatorContract.connect(owner).addValidator(validator1.address, '0x00', 100000)
+        ).to.be.revertedWith("Validator: Validator is already registered");
+    });
+
     describe("Add", async () => {
         it("Success: Owner can add a validator", async function() {
             await expect(
@@ -376,6 +388,12 @@ describe("Validator", function () {
             await expect(
                 await _ValidatorContract.checkIfExist(validator1.address)
             ).to.equal(false);
+        });
+
+        it("Exploit: #2/QSP-14 Should not allow overwrite disabled validator", async function() {
+            await expect(
+                _ValidatorContract.connect(owner).addValidator(validator1.address, '0x00', 100000)
+            ).to.be.revertedWith("Validator: Validator is already registered");
         });
     });
 

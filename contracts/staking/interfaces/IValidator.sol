@@ -6,7 +6,7 @@ interface IValidator {
         address id;
         bytes data;
         uint commission;
-        bool disabled;
+        bool enabled;
     }
 
     struct CommissionChangeRequest {
