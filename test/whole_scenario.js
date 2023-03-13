@@ -9,6 +9,11 @@ describe("Whole scenario with prod contract: Day0", function () {
         _ChainlinkCoordinator, _ChainlinkWrapper, _RewardContract;
     let owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, delegator4, nobody, commissionReceiver;
 
+    // 必要に応じてガス代を変更
+    // 例： const option = { gasPrice: 150 * 10 ** 9 }
+    const option = {}
+    const claimOption = {}
+    
     beforeEach(async function() {
         [owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, delegator4, nobody, commissionReceiver] = await ethers.getSigners();
         const { TimeContract, FNCToken, ValidatorContract, VaultContract, StakingContract, LogFileHash, RNG,
@@ -847,6 +852,15 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     ).to.emit(
                                         _RewardContract, "TransferredStakingReward"
                                     ).withArgs(
+                                        delegator1.address, delegator1.address, 0, beforeLock
+                                    )
+
+                                    // Receive 45 days (total 181 days)
+                                    await expect(
+                                        _RewardContract.connect(delegator1).claimStakingReward(claimOption)
+                                    ).to.emit(
+                                        _RewardContract, "TransferredStakingReward"
+                                    ).withArgs(
                                         delegator1.address, delegator1.address, expected, accumulated
                                     )
                                 });
@@ -923,6 +937,15 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     // Receive 45 days (total 180 days)
                                     await expect(
                                         _RewardContract.connect(delegator1).claimStakingReward()
+                                    ).to.emit(
+                                        _RewardContract, "TransferredStakingReward"
+                                    ).withArgs(
+                                        delegator1.address, delegator1.address, 0, beforeLock
+                                    )
+
+                                    // Receive 45 days (total 181 days)
+                                    await expect(
+                                        _RewardContract.connect(delegator1).claimStakingReward(claimOption)
                                     ).to.emit(
                                         _RewardContract, "TransferredStakingReward"
                                     ).withArgs(
