@@ -165,7 +165,6 @@ describe('RewardContract', (_) => {
       await _FNCToken.connect(delegator1).approve(_VaultContract.address, vp1);
       await _FNCToken.connect(delegator2).approve(_VaultContract.address, vp2);
       await _FNCToken.connect(delegator3).approve(_VaultContract.address, vp3);
-      await _VaultContract.setupStakingRole(_StakingContract.address);
       await _StakingContract.connect(delegator1).lockAndDelegate(vp1, validator1.address);
       await _StakingContract.connect(delegator2).lockAndDelegate(vp2, validator1.address);
       await _StakingContract.connect(delegator3).lockAndDelegate(vp3, validator1.address);
