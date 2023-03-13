@@ -9,10 +9,11 @@ import "./interfaces/IVault.sol";
 import "./interfaces/ILogFileHash.sol";
 import "./utils/TicketUtils.sol";
 import "./utils/UnrenounceableOwnable.sol";
+import "./utils/ArrayUtils.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
+contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils, ArrayUtils {
     ITime private immutable _timeContract;
     IERC20 private immutable _token;
     IStaking private immutable _stakingContract;
@@ -410,11 +411,11 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
             bool participated = false;
             bool majority = false;
 
-            if ( _include(participatedValidators, validator) ) {
+            if ( _includeAddress(participatedValidators, validator) ) {
                 participated = true;
             }
 
-            if ( _include(majorityValidators, validator) ) {
+            if ( _includeAddress(majorityValidators, validator) ) {
                 majority = true;
             }
 
@@ -462,15 +463,6 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
         }
 
         return ValidationHistory(day, participated, majority, win, budget, commission);
-    }
-
-    function _include(address[] memory array, address element) internal pure returns(bool) {
-        for ( uint i = 0; i < array.length; i++ ) {
-            if (element == array[i]) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
