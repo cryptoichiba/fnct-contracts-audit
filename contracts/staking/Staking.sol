@@ -82,11 +82,14 @@ contract StakingContract is IStaking, UnrenounceableOwnable {
      * @notice Updates internal cache of total delegated amount.
      * @dev This function is designed to be idempotent.
      * @dev Basically this function should be called by the LogFileHash contract, but is callable by anyone.
+     *
+     * Emits {TotalDelegatedUpdated} event
      */
     function updateTotalDelegated(uint day, address validator) override external {
         if ( !_totalValidationPowerUpdated[validator][day] ) {
             _totalValidationPowerHistory[validator][day] = getTotalDelegatedTo(day, validator);
             _totalValidationPowerUpdated[validator][day] = true;
+            emit TotalDelegatedUpdated(msg.sender, validator, day, _totalValidationPowerHistory[validator][day]);
         }
     }
 

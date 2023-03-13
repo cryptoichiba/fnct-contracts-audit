@@ -75,4 +75,9 @@ interface IStaking is IFixedStaking {
      * @notice Emitted when `amount` of tokens unlocked by the `user` with delegated `validator` to at the time.
      */
     event Unlocked(address indexed user, address indexed validator, uint256 amount);
+
+    /**
+     * @notice Emitted when internal cache of total delegated `amount` updated
+     */
+    event TotalDelegatedUpdated(address indexed sender, address indexed validator, uint day, uint256 amount);
 }

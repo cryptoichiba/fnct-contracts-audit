@@ -139,7 +139,7 @@ describe('LogFileHash', () => {
 
       await _TimeContract.setCurrentTimeIndex(2);
       await expect(
-        await _LogFileHash.connect(validator1).submit(validator1.address, 1, '0x02', '0x03')
+        await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02')
       ).to.emit(_LogFileHash, "WinnerUpdated").withArgs(validator1.address, 0, ethers.constants.AddressZero, WinnerStatus.NoMajority);
 
       await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoMajority].toString());
@@ -153,7 +153,7 @@ describe('LogFileHash', () => {
 
       await _TimeContract.setCurrentTimeIndex(2);
       await expect(
-        await _LogFileHash.connect(validator1).submit(validator1.address, 1, '0x02', '0x03')
+        await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02')
       ).to.emit(_LogFileHash, "WinnerUpdated").withArgs(validator1.address, 0, ethers.constants.AddressZero, WinnerStatus.NoMajority);
 
       await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoMajority].toString());
@@ -167,8 +167,8 @@ describe('LogFileHash', () => {
 
       await _TimeContract.setCurrentTimeIndex(2);
       await expect(
-        await _LogFileHash.connect(validator1).submit(validator1.address, 1, '0x02', '0x03')
-      ).to.emit(_LogFileHash, "WinnerUpdated").withArgs(validator1.address, 0, ethers.constants.AddressZero, WinnerStatus.NoMajority);
+        await _LogFileHash.connect(validator1).submit(validator1.address, 0, '0x01', '0x02')
+      ).not.to.emit(_LogFileHash, "WinnerUpdated");
 
       await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoMajority].toString());
     });
@@ -210,7 +210,7 @@ describe('LogFileHash', () => {
       await _TimeContract.setCurrentTimeIndex(32);
       await expect(
         await _LogFileHash.connect(validator1).submit(validator1.address, 1, '0x02', '0x03')
-      ).not.to.emit(_LogFileHash, "WinnerUpdated");
+      ).to.emit(_LogFileHash, "WinnerUpdated").withArgs(validator1.address, 2, ethers.constants.AddressZero, WinnerStatus.NoMajority);
 
       await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
         BigNumber.from(1), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
@@ -229,7 +229,7 @@ describe('LogFileHash', () => {
       await _TimeContract.setCurrentTimeIndex(31);
       await expect(
         await _LogFileHash.connect(validator1).submit(validator1.address, 1, '0x02', '0x03')
-      ).not.to.emit(_LogFileHash, "WinnerUpdated");
+      ).to.emit(_LogFileHash, "WinnerUpdated").withArgs(validator1.address, 2, ethers.constants.AddressZero, WinnerStatus.NoMajority);
 
       await expect((await _LogFileHash.getWinner(0)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.Abandoned].toString());
     });
