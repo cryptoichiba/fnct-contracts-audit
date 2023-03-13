@@ -62,7 +62,7 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
      */
     function calcLock(address user) override external view returns (uint256) {
         uint today = _timeContract.getCurrentTimeIndex();
-        return uint(int(_calcUserLock(today, user)) - int(_calcUserUnLock(today, user)));
+        return _calcUserLock(today, user) - _calcUserUnLock(today, user);
     }
 
     /**
@@ -82,7 +82,7 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
      * @return Num currently locked tokens that will still be locked on day
      */
     function calcLockOfDay(uint day, address user) override external view returns (uint256) {
-        return uint(int(_calcUserLock(day, user)) - int(_calcUserUnLock(day, user)));
+        return _calcUserLock(day, user) - _calcUserUnLock(day, user);
     }
 
     function _calcUserLock(uint day, address user) internal view returns (uint256) {
@@ -112,7 +112,7 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
     function _calcUserUnlockable(uint day, address user) internal view returns (uint256) {
         uint256 totalLocked = 0;
         for ( uint i = 0; i < _lockHistory[user].length; i++ ) {
-            if ( int(_lockHistory[user][i].day) >= int(day) - int(minimum_holding_period) ) {
+            if ( _lockHistory[user][i].day + minimum_holding_period >= day ) {
                 break;
             }
 
@@ -135,7 +135,7 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
      * @return Total amount of tokens that all specified users (combined) have locked until specific day.
      */
     function calcUsersLock(uint day, address[] calldata users) override external view returns (uint256) {
-        return uint256(int(_calcUsersLock(day, users)) - int(_calcUsersUnLock(day, users)));
+        return _calcUsersLock(day, users) - _calcUsersUnLock(day, users);
     }
 
     function _calcUsersLock(uint day, address[] calldata users) internal view returns (uint256) {
