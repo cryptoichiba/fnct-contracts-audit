@@ -64,16 +64,6 @@ interface IReward is IFixedReward {
     /// view functions
 
     /**
-     * @notice Returns `user`'s staking reward receipts.
-     */
-    function getStakingRewardData(address user) external view returns(StakingRewardRecord[] memory);
-
-    /**
-     * @notice Returns `user`'s staking commission receipts.
-     */
-    function getStakingCommissionData(address user) external view returns(StakingCommissionRecord[] memory);
-
-    /**
      * @notice Returns the staking pool size of the `day`.
      * @dev `day` is days since launch date.
      */

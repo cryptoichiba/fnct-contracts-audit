@@ -18,15 +18,6 @@ contract MockStakingContract is IStaking {
         return validatorAddress;
     }
 
-    function getDelegators(uint day, address validator) public view returns (address[] memory) {
-        day; validator;
-
-        address[] memory output = new address[](1);
-        output[0] = validatorAddress;
-
-        return output;
-    }
-
     function getTotalDelegatedTo(uint day, address validator) override external pure returns(uint) {
         day; validator;
 

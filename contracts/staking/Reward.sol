@@ -167,20 +167,6 @@ contract RewardContract is IReward, UnrenounceableOwnable, TicketUtils {
         return pool * _dailyAllocationFromPoolPPM / _denominatorInPPM;
     }
 
-    /**
-     * @notice Returns `user`'s staking reward receipts.
-     */
-    function getStakingRewardData(address user) override external view returns(StakingRewardRecord[] memory) {
-        return _stakingRewardReceipts[user];
-    }
-
-    /**
-     * @notice Returns `user`'s staking commission receipts.
-     */
-    function getStakingCommissionData(address user) override external view returns(StakingCommissionRecord[] memory) {
-        return _stakingCommissionReceipts[user];
-    }
-
     /// operator management
 
     /**

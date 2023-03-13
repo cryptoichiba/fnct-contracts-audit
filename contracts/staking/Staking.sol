@@ -5,11 +5,10 @@ import "./interfaces/ITime.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IValidator.sol";
-import "./utils/ArrayUtils.sol";
 import "./utils/UnrenounceableOwnable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
+contract StakingContract is IStaking, UnrenounceableOwnable {
     ITime private immutable _timeContract;
     IVault private immutable _vaultContract;
     IValidator private immutable _validatorContract;
@@ -89,31 +88,6 @@ contract StakingContract is IStaking, UnrenounceableOwnable, ArrayUtils {
             _totalValidationPowerHistory[validator][day] = getTotalDelegatedTo(day, validator);
             _totalValidationPowerUpdated[validator][day] = true;
         }
-    }
-
-    /**
-     * @notice Returns all delegators who delegated to a `validator` at the `day`.
-     * @dev `day` is days since launch date.
-     */
-    function getDelegators(uint day, address validator) external view returns (address[] memory) {
-        address[] memory _delegators = new address[](_users.length);
-        uint count = 0;
-
-        for ( uint i = 0; i < _users.length; i++ ) {
-            address user = _users[i];
-            Selection[] memory records =_validatorSelection[user];
-            for ( uint j = records.length - 1; j >= 0; j-- ) {
-                if( records[j].day <= day && records[j].validator == validator ) {
-                    _delegators[count] = user;
-                    count++;
-                    break;
-                }
-
-                if ( j == 0 ) break;
-            }
-        }
-
-        return _trim(_delegators, count);
     }
 
     /**

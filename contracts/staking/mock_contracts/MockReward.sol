@@ -21,19 +21,6 @@ contract MockRewardContract is IReward, Ownable, TicketUtils {
     /**********************************************************************************************************
     * view functions
     **********************************************************************************************************/
-    function getStakingRewardData(address user) override public pure returns(StakingRewardRecord[] memory) {
-        user;
-
-        StakingRewardRecord[] memory output = new StakingRewardRecord[](1);
-        return output;
-    }
-
-    function getStakingCommissionData(address user) override public pure returns(StakingCommissionRecord[] memory){
-        user;
-
-        StakingCommissionRecord[] memory output = new StakingCommissionRecord[](1);
-        return output;
-    }
 
     function getStakingPoolSize(uint day) override external pure returns(uint) {
         day;

@@ -27,12 +27,6 @@ interface IStaking is IFixedStaking {
     function getTotalDelegatedTo(uint day, address validator) external view returns(uint256);
 
     /**
-     * @notice Returns all delegators who delegated to a `validator` at the `day`.
-     * @dev `day` is days since launch date.
-     */
-    function getDelegators(uint day, address validator) external view returns (address[] memory);
-
-    /**
      * @notice Returns current locked token amount of a `user`.
      */
     function calcLock(address user) external view returns(uint256);
