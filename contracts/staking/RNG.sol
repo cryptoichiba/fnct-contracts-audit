@@ -113,6 +113,7 @@ contract RandomNumberGenerator is VRFV2WrapperConsumerBase, AccessControl, Confi
         // Insert request status data into "requestHistory" and "requests" mappings.
         RequestStatus memory status = RequestStatus({
             day: day,
+            requestDay: _timeContract.getCurrentTimeIndex(),
             paid: VRF_V2_WRAPPER.calculateRequestPrice(callbackGasLimit),
             max: maxNumber,
             randomWords: 0,
@@ -143,7 +144,7 @@ contract RandomNumberGenerator is VRFV2WrapperConsumerBase, AccessControl, Confi
     function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal override {
         require(requests[requestId].paid > 0, 'RandomNumber: Request not found');
         require(!requests[requestId].fulfilled, 'RandomNumber: Callback was received twice');
-        require(_timeContract.getCurrentTimeIndex() <= requests[requestId].day + _abandonDaysAfterRequesting, 'RandomNumber: Callback was received after abandoned');
+        require(_timeContract.getCurrentTimeIndex() <= requests[requestId].requestDay + _abandonDaysAfterRequesting, 'RandomNumber: Callback was received after abandoned');
 
         // Convert input random word into a random number of requested range
         uint randomNumber = randomWords[0] % requests[requestId].max;

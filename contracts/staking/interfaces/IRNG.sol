@@ -2,7 +2,8 @@
 pragma solidity 0.8.16;
 
 struct RequestStatus {
-    uint day; // day when request was made
+    uint day; // target day
+    uint requestDay; // day when request was made
     uint256 paid; // amount paid in link
     uint256 max; // the maximum possible number
     bool fulfilled; // whether the request has been successfully fulfilled
