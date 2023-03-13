@@ -157,6 +157,16 @@ interface IReward is IFixedReward {
      */
     function supplyCTHPool(uint256 amount) external;
 
+    /**
+     * @notice Grants `maintainer` as a pool maintainer.
+     */
+    function grantPoolMaintainer(address maintainer) external;
+
+    /**
+     * @notice Revokes `maintainer` as a pool maintainer.
+     */
+    function revokePoolMaintainer(address maintainer) external;
+
     /// self Txs
 
     /**
@@ -252,4 +262,14 @@ interface IReward is IFixedReward {
      * @notice Emitted when `sender` changed ticket signer to `signer`.
      */
     event TicketSignerChanged(address indexed sender, address indexed signer);
+
+    /**
+     * @notice Emitted when `sender` granted `maintainer` as a pool maintainer.
+     */
+    event PoolMaintainerGranted(address indexed sender, address indexed maintainer);
+
+    /**
+     * @notice Emitted when `sender` revoked `maintainer` as a pool maintainer.
+     */
+    event PoolMaintainerRevoked(address indexed sender, address indexed maintainer);
 }

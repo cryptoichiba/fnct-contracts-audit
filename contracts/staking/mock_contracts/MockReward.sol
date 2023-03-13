@@ -135,6 +135,14 @@ contract MockRewardContract is IReward, Ownable {
         amount;
     }
 
+    function grantPoolMaintainer(address maintainer) pure external {
+        maintainer;
+    }
+
+    function revokePoolMaintainer(address maintainer) pure external {
+        maintainer;
+    }
+
     /**********************************************************************************************************
     * self Txs
     **********************************************************************************************************/

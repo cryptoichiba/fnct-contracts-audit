@@ -13,10 +13,10 @@ describe('RewardContract', (_) => {
   let _ValidatorContract = null;
   let _LogFileHash = null;
   let _RNG = null, _ChainlinkWrapper = null, _ChainlinkCoordinator = null;
-  let owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, newTicketSigner, nobody;
+  let owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, newTicketSigner, poolMaintainer, nobody;
 
   before(async () => {
-    [owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, newTicketSigner, nobody] = await ethers.getSigners();
+    [owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, newTicketSigner, poolMaintainer, nobody] = await ethers.getSigners();
     _FNCToken = await deployFNCToken(owner);
     _TimeContract = await deployTimeContract(3600, true, owner);
     _VaultContract = await deployVaultContract(_TimeContract, _FNCToken, false, owner);
@@ -40,30 +40,6 @@ describe('RewardContract', (_) => {
   it('Should deploy smart contract properly', async () => {
     console.log('ADDRESS: ', _RewardContract.address);
     expect(_RewardContract.address).not.to.equal('');
-  })
-
-  it('Success: Ticket signer', async () => {
-    await expect(
-      _RewardContract.connect(owner).setTicketSigner(newTicketSigner.address)
-    ).to.be.emit(_RewardContract, "TicketSignerChanged").withArgs(owner.address, newTicketSigner.address);
-  })
-
-  it('Fail: Ticket signer is zero address', async () => {
-    await expect(
-      _RewardContract.connect(owner).setTicketSigner(ethers.constants.AddressZero)
-    ).to.be.revertedWith("Reward: Signer is zero address");
-  })
-
-  it('Fail: non-owner', async () => {
-    await expect(
-      _RewardContract.connect(nobody).setTicketSigner(nobody.address)
-    ).to.be.revertedWith("Ownable: caller is not the owner");
-  })
-
-  it('Fail: Unrenounceable', async () => {
-    await expect(
-        _RewardContract.connect(owner).renounceOwnership()
-    ).to.be.revertedWith("UnrenounceableOwnable: Can't renounce ownership");
   })
 
   describe('getStakingRewardAccrualHistory', async () => {

@@ -12,8 +12,9 @@ import "./utils/UnrenounceableOwnable.sol";
 import "./utils/ArrayUtils.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract RewardContract is IReward, UnrenounceableOwnable {
+contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
     ITime private immutable _timeContract;
     IERC20 private immutable _token;
     IStaking private immutable _stakingContract;
@@ -47,6 +48,8 @@ contract RewardContract is IReward, UnrenounceableOwnable {
 
     uint256 _cthPoolSize = 0;
     address _ticketSigner;
+
+    bytes32 public constant POOL_MAINTAINER_ROLE = keccak256("POOL_MAINTAINER_ROLE");
 
     modifier isValidStakingRewardTicket(StakingRewardTransferTicket calldata ticket) {
         if ( ticket.receiver != address(0) ) {
@@ -110,6 +113,8 @@ contract RewardContract is IReward, UnrenounceableOwnable {
         _logFileHash = ILogFileHash(logFileHash_);
 
         _ticketSigner = owner();
+
+        _grantRole(POOL_MAINTAINER_ROLE, msg.sender);
     }
 
     /**
@@ -191,7 +196,7 @@ contract RewardContract is IReward, UnrenounceableOwnable {
      *
      * Emit a {StakingTokenSupplyScheduled} event.
      */
-    function supplyStakingPool(uint startDay, uint256 amount) override external onlyOwner {
+    function supplyStakingPool(uint startDay, uint256 amount) override external onlyRole(POOL_MAINTAINER_ROLE) {
         require(amount > 0, "Reward: Amount is zero");
         require(startDay >= _timeContract.getCurrentTimeIndex(), "Reward: You can't specify day in the past");
 
@@ -209,7 +214,7 @@ contract RewardContract is IReward, UnrenounceableOwnable {
      *
      * Emits a {StakingTokenSupplyRecycled} event.
      */
-    function recycleStakingPool(uint startDay, uint targetDay) override external onlyOwner {
+    function recycleStakingPool(uint startDay, uint targetDay) override external onlyRole(POOL_MAINTAINER_ROLE) {
         require(targetDay > 0, "Reward: You can't specify day in the past");
         require(targetDay < _timeContract.getCurrentTimeIndex(), "Reward: You can't specify future date");
         require(!_stakingRewardRecycled[targetDay], "Reward: Already recycled");
@@ -249,12 +254,36 @@ contract RewardContract is IReward, UnrenounceableOwnable {
      *
      * Emits a {CTHTokenSupplied} event.
      */
-    function supplyCTHPool(uint256 amount) override external onlyOwner {
+    function supplyCTHPool(uint256 amount) override external onlyRole(POOL_MAINTAINER_ROLE) {
         _cthPoolSize += amount;
 
         SafeERC20.safeTransferFrom(_token, msg.sender, address(this), amount);
 
         emit CTHTokenSupplied(amount);
+    }
+
+    /**
+     * @notice Grants `maintainer` as a pool maintainer.
+     *
+     * Emits `PoolMaintainerGranted` event.
+     */
+    function grantPoolMaintainer(address maintainer) external onlyOwner {
+        require(maintainer != address(0x0), "Reward: Maintainer is zero address");
+        _grantRole(POOL_MAINTAINER_ROLE, maintainer);
+
+        emit PoolMaintainerGranted(msg.sender, maintainer);
+    }
+
+    /**
+     * @notice Revokes `maintainer` as a pool maintainer.
+     *
+     * Emits `PoolMaintainerRevoked` event.
+     */
+    function revokePoolMaintainer(address maintainer) external onlyOwner {
+        require(maintainer != address(0x0), "Reward: Maintainer is zero address");
+        _revokeRole(POOL_MAINTAINER_ROLE, maintainer);
+
+        emit PoolMaintainerRevoked(msg.sender, maintainer);
     }
 
     /**
