@@ -605,6 +605,8 @@ contract RewardContract is IReward, UnrenounceableOwnable {
                 StakingRewardRecord memory rewardRecord;
                 WinnerStatus status;
                 (rewardRecord, status) = calcAvailableStakingRewardAmountOfDay(day, receiver);
+
+                // immutable status?
                 if ( status == WinnerStatus.Decided || status == WinnerStatus.NoMajority || status == WinnerStatus.Abandoned ) {
                     // For other reason, they might be granted rewards later
                     availableReward += rewardRecord.amount;

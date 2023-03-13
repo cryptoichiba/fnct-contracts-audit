@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
 const { BigNumber } = ethers;
-const { deployAll } = require("./support/deploy");
+const { deployAll, WinnerStatus } = require("./support/deploy");
 const {_logger} = require('truffle/build/553.bundled');
 
 describe("Whole scenario with prod contract: Day0", function () {
@@ -456,15 +456,6 @@ describe("Whole scenario with prod contract: Day0", function () {
                 });
 
                 describe("Submit(day0)", function () {
-                    let WinnerStatus = {
-                        Decided: 0,
-                        NoWinnerForFutureDate: 1,
-                        NoMajority: 2,
-                        NoSubmissionToday: 3,
-                        Pending: 4,
-                        Abandoned: 5
-                    };
-
                     beforeEach(async function() {
                         await _LogFileHash.connect(validator1).submit(validator1.address, 0, file0, file1).then(tx => tx.wait())
                         await _LogFileHash.connect(validator2).submit(validator2.address, 0, file0, file1).then(tx => tx.wait())

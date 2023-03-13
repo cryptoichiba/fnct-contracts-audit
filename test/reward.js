@@ -1,7 +1,7 @@
 const {expect} = require('chai');
 const {ethers} = require('hardhat');
 const { deployLogFileHash, deployTimeContract, deployStakingContract, deployFNCToken, deployVaultContract,
-  deployValidatorContract, deployRewardContract, deployRNG
+  deployValidatorContract, deployRewardContract, deployRNG, WinnerStatus
 } = require('./support/deploy');
 
 describe('RewardContract', (_) => {
@@ -14,14 +14,6 @@ describe('RewardContract', (_) => {
   let _LogFileHash = null;
   let _RNG = null, _ChainlinkWrapper = null, _ChainlinkCoordinator = null;
   let owner, validator1, validator2, validator3, delegator1, delegator2, delegator3;
-  let WinnerStatus = {
-    Decided: 0,
-    NoWinnerForFutureDate: 1,
-    NoMajority: 2,
-    NoSubmissionToday: 3,
-    Pending: 4,
-    Abandoned: 5
-  };
 
   before(async () => {
     [owner, validator1, validator2, validator3, delegator1, delegator2, delegator3] = await ethers.getSigners();

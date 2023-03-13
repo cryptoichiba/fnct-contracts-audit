@@ -8,7 +8,7 @@ const {
   ZeroCTHRewardTransferTicket,
   ZeroStakingRewardTransferTicket,
 } = require("./support/ticket");
-const {deployAll} = require('./support/deploy');
+const {deployAll, WinnerStatus} = require('./support/deploy');
 const {constants} = require("@openzeppelin/test-helpers");
 
 describe("Meta Transaction: Day0", function () {
@@ -35,13 +35,6 @@ describe("Meta Transaction: Day0", function () {
         const vp2 = String(web3.utils.toWei(web3.utils.toBN(2000), "ether"));
         const vp3 = String(web3.utils.toWei(web3.utils.toBN(3000), "ether"));
         const vp4 = String(web3.utils.toWei(web3.utils.toBN(4000), "ether"));
-        let WinnerStatus = {
-            Decided: 0,
-            NoWinnerForFutureDate: 1,
-            NoMajority: 2,
-            NoSubmissionToday: 3,
-            Pending: 4
-        };
 
         beforeEach(async function() {
             await _ValidatorContract.connect(owner).addValidator(validator1.address, '0x00', 10 ** 5);

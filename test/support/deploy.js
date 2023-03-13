@@ -301,6 +301,16 @@ const deployAll = async (useMock = false, _deployer = null, preparedContracts = 
   };
 };
 
+const WinnerStatus = {
+  Uninitialized: 0,
+  Decided: 1,
+  NoWinnerForFutureDate: 2,
+  NoMajority: 3,
+  NoSubmissionToday: 4,
+  Pending: 5,
+  Abandoned: 6
+};
+
 // ---
 
 exports.deployTimeContract = deployTimeContract;
@@ -312,3 +322,4 @@ exports.deployRNG = deployRNG;
 exports.deployLogFileHash = deployLogFileHash;;
 exports.deployRewardContract = deployRewardContract;
 exports.deployAll = deployAll;
+exports.WinnerStatus = WinnerStatus;

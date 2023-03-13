@@ -1,7 +1,7 @@
 const {expect} = require('chai');
 const {ethers} = require('hardhat');
 const {deployLogFileHash, deployRNG, deployStakingContract, deployTimeContract, deployFNCToken, deployVaultContract,
-  deployValidatorContract
+  deployValidatorContract, WinnerStatus
 } = require('./support/deploy');
 
 describe('LogFileHash', () => {
@@ -402,15 +402,6 @@ describe('LogFileHash', () => {
     })
 
     context('LINK suspended 30 days for a day', async () => {
-      let WinnerStatus = {
-        Decided: 0,
-        NoWinnerForFutureDate: 1,
-        NoMajority: 2,
-        NoSubmissionToday: 3,
-        Pending: 4,
-        Abandoned: 5
-      };
-
       beforeEach(async () => {
         await _TimeContract.setCurrentTimeIndex(0);
         await _StakingContract.connect(delegator1).lockAndDelegate(BigInt(2 * 10**18), validator1.address);

@@ -13,6 +13,7 @@ pragma solidity 0.8.16;
  *       Mutable status: NoWinnerForFutureDate, NoSubmissionToday, Pending
  */
 enum WinnerStatus {
+    Uninitialized,
     Decided,
     NoWinnerForFutureDate,
     NoMajority,
