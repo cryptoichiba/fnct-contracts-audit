@@ -557,6 +557,8 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
     function claimCTHReward(CTHRewardTransferTicket calldata ticket)
         isValidCTHRewardTicket(ticket)
         override external returns(uint256) {
+        require(ticket.receiver != address(0x0), "Reward: Receiver is zero address");
+
         _usedBodySignatureHash[keccak256(ticket.bodySignature)] = true;
         return _transferCTHReward(ticket.receiver, ticket.accumulatedAmount);
     }
@@ -569,6 +571,8 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
     function claimRewards(CTHRewardTransferTicket calldata ticket)
         isValidCTHRewardTicket(ticket)
         override external returns(uint256) {
+        require(ticket.receiver != address(0x0), "Reward: Receiver is zero address");
+
         _usedBodySignatureHash[keccak256(ticket.bodySignature)] = true;
         uint256 transferredAmount = _transferStakingReward(msg.sender, defaultLimitDays) + _transferCTHReward(ticket.receiver, ticket.accumulatedAmount);
 
@@ -585,6 +589,8 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
     function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket, uint limitDays)
         isValidStakingRewardTicket(ticket)
         override external returns(uint256) {
+        require(ticket.receiver != address(0x0), "Reward: Receiver is zero address");
+
         _usedBodySignatureHash[keccak256(ticket.bodySignature)] = true;
         return _transferStakingReward(ticket.receiver, limitDays);
     }
@@ -595,6 +601,8 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
     function metaClaimCTHReward(CTHRewardTransferTicket calldata ticket)
         isValidCTHRewardTicket(ticket)
         override external returns(uint256) {
+        require(ticket.receiver != address(0x0), "Reward: Receiver is zero address");
+
         _usedBodySignatureHash[keccak256(ticket.bodySignature)] = true;
         return _transferCTHReward(ticket.receiver, ticket.accumulatedAmount);
     }
@@ -736,6 +744,11 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
         isValidStakingRewardTicket(tickets.ticketForStaking)
         isValidCTHRewardTicket(tickets.ticketForCTH)
         internal returns(uint256) {
+        // At least one ticket should have a valid receiver
+        require(tickets.ticketForStaking.receiver != address(0x0) || tickets.ticketForCTH.receiver != address(0x0),
+            "Reward: Invalid receiver"
+        );
+        // Both tickets should have the same receiver, otherwise one ticket should have the zero receiver
         require(
             tickets.ticketForStaking.receiver == tickets.ticketForCTH.receiver ||
             tickets.ticketForStaking.receiver == address(0x0) ||
