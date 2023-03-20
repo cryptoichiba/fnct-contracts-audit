@@ -52,9 +52,9 @@ const deployFixture = async () => {
 //   change the numbers of the below constants and re-run command, then eval gas usage of key functions difference against the diff of each constants
 describe.skip("Performance: Pattern of increasing number of delegators/lock/unlock/submission/running days", () => {
     const num_users = 1;
-    const call_lock_per_user = 1000;
+    const call_lock_per_user = 1;
     const call_lock_per_other_user = 1;
-    const call_unlock_per_user = 1000;
+    const call_unlock_per_user = 1;
     const call_unlock_per_other_user = 1;
     const submit_per_day = 1;
     const days = 3; // More than 2
@@ -109,7 +109,7 @@ describe.skip("Performance: Pattern of increasing number of delegators/lock/unlo
             await StakingContract.connect(users[0]).lockAndDelegate(call_unlock_per_user, validator);
         }
 
-        await TimeContract.setCurrentTimeIndex(181);
+        await TimeContract.setCurrentTimeIndex(180);
 
         // other's unlock: call_lock_per_other_user * call_unlock_per_other_user
         for (let i = 1; i < users.length; i++) {
@@ -140,7 +140,7 @@ describe.skip("Performance: Pattern of increasing number of delegators/lock/unlo
         }
     })
 
-    it.only("User call getStakingReward", async () => {
+    it("User call getStakingReward", async () => {
         const {
             owner,
             suppliyer,
@@ -183,7 +183,7 @@ describe.skip("Performance: Pattern of increasing number of delegators/lock/unlo
             await StakingContract.connect(users[0]).lockAndDelegate(call_unlock_per_user, validator);
         }
 
-        await TimeContract.setCurrentTimeIndex(181);
+        await TimeContract.setCurrentTimeIndex(180);
 
         // other's unlock call_lock_per_user * call_unlock_per_user
         for (let i = 1; i < users.length; i++) {
@@ -203,7 +203,7 @@ describe.skip("Performance: Pattern of increasing number of delegators/lock/unlo
             const file1 = web3.utils.hexToBytes("0xabcdabcd" + String(day+1));
             const file2 = web3.utils.hexToBytes("0xabcdabcd" + String(day+2));
 
-            await TimeContract.setCurrentTimeIndex(181 + day);
+            await TimeContract.setCurrentTimeIndex(180 + day);
 
             if ( day == 0 ) {
                 console.log(day);

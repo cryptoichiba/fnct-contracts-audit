@@ -250,7 +250,7 @@ describe('LogFileHash', () => {
       await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
         BigNumber.from(1), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
-      await _TimeContract.setCurrentTimeIndex(181).then(tx => tx.wait());
+      await _TimeContract.setCurrentTimeIndex(180).then(tx => tx.wait());
       await _LogFileHash.connect(validator1).submit(validator1.address, 1, '0x02', '0x03').then(tx => tx.wait())
 
       // Send random number "0" for Chainlink RequestId 2
@@ -258,7 +258,7 @@ describe('LogFileHash', () => {
       await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
         BigNumber.from(2), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
-      await _TimeContract.setCurrentTimeIndex(182).then(tx => tx.wait());
+      await _TimeContract.setCurrentTimeIndex(181).then(tx => tx.wait());
       await _LogFileHash.connect(validator1).submit(validator1.address, 2, '0x02', '0x03').then(tx => tx.wait())
 
       // Send random number "0" for Chainlink RequestId 3
@@ -271,9 +271,8 @@ describe('LogFileHash', () => {
       await expect((await _LogFileHash.getWinner(1)).toString()).to.equal([validator1.address, WinnerStatus.Decided].toString());
       await expect((await _LogFileHash.getWinner(2)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoMajority].toString());
       await expect((await _LogFileHash.getWinner(179)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoMajority].toString());
-      await expect((await _LogFileHash.getWinner(180)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoMajority].toString());
-      await expect((await _LogFileHash.getWinner(181)).toString()).to.equal([validator1.address, WinnerStatus.Decided].toString());
-      await expect((await _LogFileHash.getWinner(182)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoWinnerForFutureDate].toString());
+      await expect((await _LogFileHash.getWinner(180)).toString()).to.equal([validator1.address, WinnerStatus.Decided].toString());
+      await expect((await _LogFileHash.getWinner(181)).toString()).to.equal([ethers.constants.AddressZero, WinnerStatus.NoWinnerForFutureDate].toString());
     });
   });
 

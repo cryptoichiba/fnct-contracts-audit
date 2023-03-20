@@ -2,18 +2,6 @@
 pragma solidity 0.8.16;
 
 interface IVault {
-    struct Lock {
-        uint day; // day that lock was created
-        address user; // locking user
-        uint256 amount; // locked amount of tokens
-    }
-
-    struct Unlock {
-        uint day; // day that unlock occured
-        address user; // unlocking user
-        uint256 amount; // unlocked amount of tokens
-    }
-
     /**
      * @notice Return total amount of tokens specified user has locked.
      * @param user Specified user

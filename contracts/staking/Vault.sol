@@ -20,8 +20,8 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
     IERC20 private immutable _token;
 
     // Lock and unlock histories
-    mapping(address => Lock[]) _lockHistory;
-    mapping(address => Unlock[]) _unlockHistory;
+    mapping(address => mapping(uint => uint256)) _lockHistory;
+    mapping(address => mapping(uint => uint256)) _unlockHistory;
 
     // Minimum holding period until locked tokens can be unlocked
     uint constant minimum_holding_period = 180;
@@ -62,7 +62,7 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
      */
     function calcLock(address user) override external view returns (uint256) {
         uint today = _timeContract.getCurrentTimeIndex();
-        return _calcUserLock(today, user) - _calcUserUnLock(today, user);
+        return _calcUserLock(0, today, user) - _calcUserUnLock(0, today, user);
     }
 
     /**
@@ -82,45 +82,33 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
      * @return Num currently locked tokens that will still be locked on day
      */
     function calcLockOfDay(uint day, address user) override external view returns (uint256) {
-        return _calcUserLock(day, user) - _calcUserUnLock(day, user);
+        return _calcUserLock(0, day, user) - _calcUserUnLock(0, day, user);
     }
 
-    function _calcUserLock(uint day, address user) internal view returns (uint256) {
+    function _calcUserLock(uint from, uint to, address user) internal view returns (uint256) {
         uint256 output = 0;
-
-        for ( uint i = 0; i < _lockHistory[user].length; i++ ) {
-            if ( _lockHistory[user][i].day > day ) {
-                break;
-            }
-            output += _lockHistory[user][i].amount;
+        for ( uint i = from; i <= to; i++ ) {
+            output += _lockHistory[user][i];
         }
         return output;
     }
 
-    function _calcUserUnLock(uint day, address user) internal view returns (uint256) {
+    function _calcUserUnLock(uint from, uint to, address user) internal view returns (uint256) {
         uint256 output = 0;
-
-        for ( uint i = 0; i < _unlockHistory[user].length; i++ ) {
-            if ( _unlockHistory[user][i].day > day ) {
-                break;
-            }
-            output += _unlockHistory[user][i].amount;
+        for ( uint i = from; i <= to; i++ ) {
+            output += _unlockHistory[user][i];
         }
         return output;
     }
 
     function _calcUserUnlockable(uint day, address user) internal view returns (uint256) {
-        uint256 totalLocked = 0;
-        for ( uint i = 0; i < _lockHistory[user].length; i++ ) {
-            if ( _lockHistory[user][i].day + minimum_holding_period >= day ) {
-                break;
-            }
-
-            totalLocked += _lockHistory[user][i].amount;
+        if ( day < minimum_holding_period ) {
+            return 0;
         }
 
-        uint256 totalUnlocked = _calcUserUnLock(day, user);
-
+        // locked before [day - minimum_holding_period]
+        uint256 totalLocked = _calcUserLock(0, day - minimum_holding_period, user);
+        uint256 totalUnlocked = _calcUserUnLock(0, day, user);
         return totalLocked - totalUnlocked;
     }
 
@@ -140,33 +128,17 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
 
     function _calcUsersLock(uint day, address[] calldata users) internal view returns (uint256) {
         uint256 output = 0;
-
         for ( uint i = 0; i < users.length; i++ ) {
-            for ( uint j = 0; j < _lockHistory[users[i]].length; j++ ) {
-                if ( _lockHistory[users[i]][j].day > day ) {
-                    break;
-                }
-
-                output += _lockHistory[users[i]][j].amount;
-            }
+            output += _calcUserLock(0, day, users[i]);
         }
-
         return output;
     }
 
     function _calcUsersUnLock(uint day, address[] calldata users) internal view returns (uint256) {
         uint256 output = 0;
-
         for ( uint i = 0; i < users.length; i++ ) {
-            for ( uint j = 0; j < _unlockHistory[users[i]].length; j++ ) {
-                if ( _unlockHistory[users[i]][j].day > day ) {
-                    break;
-                }
-
-                output += _unlockHistory[users[i]][j].amount;
-            }
+            output += _calcUserUnLock(0, day, users[i]);
         }
-
         return output;
     }
 
@@ -185,7 +157,7 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
         require(amount > 0, "Vault: Amount is zero");
 
         uint today = _timeContract.getCurrentTimeIndex();
-        _lockHistory[user].push(Lock(today, user, amount));
+        _lockHistory[user][today] += amount;
 
         SafeERC20.safeTransferFrom(_token, user, address(this), amount);
     }
@@ -205,7 +177,7 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
         uint256 unlockable = _calcUserUnlockable(today, user);
         require(amount <= unlockable, "Vault: Requested amount exceeds unlockable");
 
-        _unlockHistory[user].push(Unlock(today, user, amount));
+        _unlockHistory[user][today] += amount;
 
         SafeERC20.safeTransfer(_token, user, amount);
     }

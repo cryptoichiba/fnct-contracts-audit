@@ -725,9 +725,9 @@ describe("Whole scenario with prod contract: Day0", function () {
                                 });
                             });
 
-                            describe("Day180", function () {
+                            describe("Day179", function () {
                                 beforeEach(async function() {
-                                    await _TimeContract.setCurrentTimeIndex(180).then(tx => tx.wait());
+                                    await _TimeContract.setCurrentTimeIndex(179).then(tx => tx.wait());
                                 });
 
                                 it("Fail: Unlock tokens yet", async function () {
@@ -737,9 +737,9 @@ describe("Whole scenario with prod contract: Day0", function () {
                                 });
                             });
 
-                            describe("Day181", function () {
+                            describe("Day180", function () {
                                 beforeEach(async function() {
-                                    await _TimeContract.setCurrentTimeIndex(181).then(tx => tx.wait());
+                                    await _TimeContract.setCurrentTimeIndex(180).then(tx => tx.wait());
                                 });
 
                                 it("Success: Unlock tokens at once", async function () {
@@ -764,9 +764,9 @@ describe("Whole scenario with prod contract: Day0", function () {
                                 });
                             });
 
-                            describe("Day182", function () {
+                            describe("Day181", function () {
                                 beforeEach(async function() {
-                                    await _TimeContract.setCurrentTimeIndex(182).then(tx => tx.wait());
+                                    await _TimeContract.setCurrentTimeIndex(181).then(tx => tx.wait());
                                 });
 
                                 it("Success: Unlock tokens that locked at day1", async function () {
@@ -782,18 +782,18 @@ describe("Whole scenario with prod contract: Day0", function () {
                                 });
                             });
 
-                            describe("Day182: reward amount related to unlock", function () {
-                                it("Reward without unlock at day 181", async function () {
+                            describe("Day180: reward amount related to unlock", function () {
+                                it("Reward without unlock at day 180", async function () {
                                     // Send random number "0" for Chainlink RequestId 1
                                     // (VRFCoordinatorV2Mock.sol assigns RequestIds [1,2,3...])
                                     await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
                                         BigNumber.from(1), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     await expect(
-                                        await _StakingContract.getTotalDelegatedTo(181, validator1.address)
+                                        await _StakingContract.getTotalDelegatedTo(180, validator1.address)
                                     ).to.equal(ethers.BigNumber.from("7000000000000"));
 
-                                    await _TimeContract.setCurrentTimeIndex(181, option).then(tx => tx.wait());
+                                    await _TimeContract.setCurrentTimeIndex(180, option).then(tx => tx.wait());
                                     await _LogFileHash.connect(validator1).submit(validator1.address, 1, file1, file2, option).then(tx => tx.wait())
                                     // Send random number "0" for Chainlink RequestId 2
                                     // (VRFCoordinatorV2Mock.sol assigns RequestIds [1,2,3...])
@@ -811,7 +811,7 @@ describe("Whole scenario with prod contract: Day0", function () {
                                         delegator1.address, delegator1.address, beforeLock, beforeLock
                                     )
 
-                                    await _TimeContract.setCurrentTimeIndex(182).then(tx => tx.wait());
+                                    await _TimeContract.setCurrentTimeIndex(181).then(tx => tx.wait());
                                     await _LogFileHash.connect(validator1).submit(validator1.address, 2, file2, file3).then(tx => tx.wait())
 
                                     // Send random number "0" for Chainlink RequestId 3
@@ -821,10 +821,10 @@ describe("Whole scenario with prod contract: Day0", function () {
                                         BigNumber.from(3), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     await expect(
-                                        await _VaultContract.calcLockOfDay(181, delegator1.address)
+                                        await _VaultContract.calcLockOfDay(180, delegator1.address)
                                     ).to.equal(ethers.BigNumber.from("2000000000000"));
 
-                                    allocated = await _RewardContract.getDailyStakingRewardsAmount(181);
+                                    allocated = await _RewardContract.getDailyStakingRewardsAmount(180);
                                     expected = allocated.mul(2).mul(90).div(7).div(100) // 2/7 vp - 10% commission
                                     accumulated = expected.add(beforeLock)
 
@@ -865,17 +865,17 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     )
                                 });
 
-                                it("Reward after unlock at day 181", async function () {
+                                it("Reward after unlock at day 180", async function () {
                                     // Send random number "0" for Chainlink RequestId 1
                                     // (VRFCoordinatorV2Mock.sol assigns RequestIds [1,2,3...])
                                     await _ChainlinkCoordinator.connect(owner).fulfillRandomWordsWithOverride(
                                         BigNumber.from(1), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     await expect(
-                                        await _StakingContract.getTotalDelegatedTo(181, validator1.address)
+                                        await _StakingContract.getTotalDelegatedTo(180, validator1.address)
                                     ).to.equal(ethers.BigNumber.from("7000000000000"));
 
-                                    await _TimeContract.setCurrentTimeIndex(181).then(tx => tx.wait());
+                                    await _TimeContract.setCurrentTimeIndex(180).then(tx => tx.wait());
                                     await _LogFileHash.connect(validator1).submit(validator1.address, 1, file1, file2).then(tx => tx.wait())
 
                                     // Send random number "0" for Chainlink RequestId 2
@@ -898,10 +898,10 @@ describe("Whole scenario with prod contract: Day0", function () {
                                     await _StakingContract.connect(delegator1).unlock(ethers.BigNumber.from("1000000000000")).then(tx => tx.wait());
 
                                     await expect(
-                                        await _StakingContract.getTotalDelegatedTo(181, validator1.address)
+                                        await _StakingContract.getTotalDelegatedTo(180, validator1.address)
                                     ).to.equal(ethers.BigNumber.from("6000000000000"));
-
-                                    await _TimeContract.setCurrentTimeIndex(182).then(tx => tx.wait());
+                                    
+                                    await _TimeContract.setCurrentTimeIndex(181).then(tx => tx.wait());
                                     await _LogFileHash.connect(validator1).submit(validator1.address, 2, file2, file3).then(tx => tx.wait())
                                     // Send random number "0" for Chainlink RequestId 3
                                     // (VRFCoordinatorV2Mock.sol assigns RequestIds [1,2,3...])
@@ -909,10 +909,10 @@ describe("Whole scenario with prod contract: Day0", function () {
                                         BigNumber.from(3), _ChainlinkWrapper.address, [0]).then(tx => tx.wait());
 
                                     await expect(
-                                        await _VaultContract.calcLockOfDay(181, delegator1.address)
+                                        await _VaultContract.calcLockOfDay(180, delegator1.address)
                                     ).to.equal(ethers.BigNumber.from("1000000000000"));
 
-                                    allocated = await _RewardContract.getDailyStakingRewardsAmount(181);
+                                    allocated = await _RewardContract.getDailyStakingRewardsAmount(180);
                                     expected = allocated.mul(1).mul(90).div(6).div(100) // 1/6 vp - 10% commission
                                     accumulated = expected.add(beforeLock)
 
