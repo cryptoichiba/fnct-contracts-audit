@@ -388,10 +388,10 @@ describe("FCNT Lockup Manager", function () {
             });
         });
 
-        describe("Step: Day180", function () {
+        describe("Step: Day179", function () {
             beforeEach(async function() {
-                // 時刻をDay180に設定
-                await _TimeContract.setCurrentTimeIndex(180);
+                // 時刻をDay179に設定
+                await _TimeContract.setCurrentTimeIndex(179);
             });
 
             it("Fail: 未べスティングでは受け取りに失敗する", async function() {
@@ -440,10 +440,10 @@ describe("FCNT Lockup Manager", function () {
             });
         });
 
-        describe("Step: Day181", function () {
+        describe("Step: Day180", function () {
             beforeEach(async function() {
                 // 時刻をDay181に設定
-                await _TimeContract.setCurrentTimeIndex(181);
+                await _TimeContract.setCurrentTimeIndex(180);
             });
 
             it("Fail: 未べスティングでは受け取りに失敗する", async function() {

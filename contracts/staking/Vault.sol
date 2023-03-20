@@ -112,7 +112,7 @@ contract VaultContract is IVault, AccessControl, UnrenounceableOwnable {
     function _calcUserUnlockable(uint day, address user) internal view returns (uint256) {
         uint256 totalLocked = 0;
         for ( uint i = 0; i < _lockHistory[user].length; i++ ) {
-            if ( _lockHistory[user][i].day + minimum_holding_period >= day ) {
+            if ( _lockHistory[user][i].day + minimum_holding_period > day ) {
                 break;
             }
 
