@@ -171,6 +171,66 @@ describe('RNGContract', () => {
         ).to.be.revertedWith("nonexistent request");
     });
 
+    it('Emit a {LinkTokenBalanceTooLow} event', async() => {
+        const _TimeContract = await deployTimeContract(5, true);
+        [_RNG, _ChainlinkWrapper, _ChainlinkCoordinator, _LinkContract] = await deployRNG(_TimeContract);
+
+        const [deployerAccount] = await ethers.getSigners();
+        await _RNG.setRequester(deployerAccount.address);
+        await _RNG.withdrawLink();
+        await _LinkContract.transfer(_RNG.address, BigNumber.from("30000000000000000000"));
+
+        let [
+            fallbackWeiPerUnitLink,
+            stalenessSeconds,
+            fulfillmentFlatFeeLinkPPM,
+            wrapperGasOverhead,
+            coordinatorGasOverhead,
+            wrapperPremiumPercentage,
+            keyHash,
+            maxNumWords
+        ] = await _ChainlinkWrapper.getConfig();
+
+        // 30.0
+        console.log(await _LinkContract.balanceOf(_RNG.address) / 10**18);
+
+        await expect(
+          _RNG.requestRandomWords(0, 100)
+        ).not.to.emit(_RNG, "LinkTokenBalanceTooLow");
+
+        // 29.41 > 0.58 * 30, not to be emitted
+        console.log(await _LinkContract.balanceOf(_RNG.address) / 10**18);
+
+        await _ChainlinkWrapper.setConfig(
+          wrapperGasOverhead,
+          coordinatorGasOverhead,
+          wrapperPremiumPercentage + 90,
+          keyHash,
+          maxNumWords
+        );
+        await expect(
+          _RNG.requestRandomWords(1, 100)
+        ).not.to.emit(_RNG, "LinkTokenBalanceTooLow");
+        await _ChainlinkWrapper.setConfig(
+          wrapperGasOverhead,
+          coordinatorGasOverhead,
+          wrapperPremiumPercentage,
+          keyHash,
+          maxNumWords
+        );
+
+        // 28.46 > 0.94 * 30, not to be emitted
+        console.log(await _LinkContract.balanceOf(_RNG.address) / 10**18);
+
+        await expect(
+          _RNG.requestRandomWords(2, 100)
+        ).to.emit(_RNG, "LinkTokenBalanceTooLow");
+
+        // 27.91 < 0.94 * 30, to be emitted
+        console.log(await _LinkContract.balanceOf(_RNG.address) / 10**18);
+    });
+
+
     describe('Exploit: No More Staking Rewards After 30 Days', async () => {
         it("Fail: Simulate on the mock", async () => {
             const _TimeContract = await deployTimeContract(5, true);

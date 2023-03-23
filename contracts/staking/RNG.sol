@@ -123,7 +123,7 @@ contract RandomNumberGenerator is VRFV2WrapperConsumerBase, AccessControl, Confi
         requests[requestId] = status;
         lastRequestId = requestId;
 
-        if ( _maxPaid > status.paid ) {
+        if ( _maxPaid < status.paid ) {
             _maxPaid = status.paid;
         }
 

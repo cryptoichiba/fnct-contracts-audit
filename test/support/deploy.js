@@ -157,7 +157,7 @@ const deployRNG = async (_TimeContract = null, useMock = false, _deployer = null
   // Note: "1" is the wrapper's subscription id
   await CoordinatorContract.connect(deployer).fundSubscription(1, LINK_ONE_HUNDRED)
 
-  return [RNGContract, WrapperContract, CoordinatorContract];
+  return [RNGContract, WrapperContract, CoordinatorContract, LinkContract];
 };
 
 const deployLogFileHash = async(
