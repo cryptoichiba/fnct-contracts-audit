@@ -171,7 +171,9 @@ describe('RNGContract', () => {
         ).to.be.revertedWith("nonexistent request");
     });
 
-    it('Emit a {LinkTokenBalanceTooLow} event', async() => {
+    // This unit test should be executed without other tests because of hardhat EVM env
+    // The test should be passed with ".only"
+    it.skip('Emit a {LinkTokenBalanceTooLow} event', async() => {
         const _TimeContract = await deployTimeContract(5, true);
         [_RNG, _ChainlinkWrapper, _ChainlinkCoordinator, _LinkContract] = await deployRNG(_TimeContract);
 
