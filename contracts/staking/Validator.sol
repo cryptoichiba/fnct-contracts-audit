@@ -251,7 +251,14 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable {
         // start date is always 1 week from request time
         CommissionChangeRequest memory request = CommissionChangeRequest(availableAt, commissionRate);
         _commissionChangeRequests[msg.sender] = request;
-        _commissionChangeRequestHistory[msg.sender].push(request);
+
+        uint length = _commissionChangeRequestHistory[msg.sender].length;
+        if ( length > 0 && _commissionChangeRequestHistory[msg.sender][length - 1].startDate > _timeContract.getCurrentTimeIndex() ) {
+            // Overwrite unapplied schedule: Replace with canceled schedule
+            _commissionChangeRequestHistory[msg.sender][length - 1] = request;
+        } else {
+            _commissionChangeRequestHistory[msg.sender].push(request);
+        }
 
         emit CommissionRateUpdated(msg.sender, availableAt, commissionRate);
     }

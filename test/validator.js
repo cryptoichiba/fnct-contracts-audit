@@ -440,6 +440,70 @@ describe("Validator", function () {
             // await expect(result).to.equal(ethers.BigNumber.from(100000)); // Under the #2/QSP-4 repro code
             await expect(result).to.equal(ethers.BigNumber.from(50000));
         });
+
+        it("Repro: Should ignore 'CANCELED(OVERWRITTEN)' schedule", async function() {
+            await _TimeContract.setCurrentTimeIndex(1);
+
+            // Initial value
+            result = await _ValidatorContract.getCommissionRateOfDay(1, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(100000));
+
+            await expect(
+              _ValidatorContract.connect(validator1).updateCommissionRate(50000)
+            ).not.to.be.reverted;
+
+            await _TimeContract.setCurrentTimeIndex(5);
+
+            // Overwrite schedule at 5+7 day / cancel 1+7 day's schedule
+            await expect(
+              _ValidatorContract.connect(validator1).updateCommissionRate(150000)
+            ).not.to.be.reverted;
+
+            await _TimeContract.setCurrentTimeIndex(7);
+
+            // Not updated yet
+            result = await _ValidatorContract.getCommissionRate(validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(100000));
+
+            for ( let i = 1; i < 12; i++ ) {
+                result = await _ValidatorContract.getCommissionRateOfDay(i, validator1.address)
+                await expect(result).to.equal(ethers.BigNumber.from(100000));
+            }
+
+            // Not updated yet but scheduled
+            result = await _ValidatorContract.getCommissionRateOfDay(12, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(150000));
+
+            await _TimeContract.setCurrentTimeIndex(8);
+
+            // Not updated yet!
+            result = await _ValidatorContract.getCommissionRate(validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(100000));
+
+            // Not updated yet!
+            result = await _ValidatorContract.getCommissionRateOfDay(8, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(100000));
+
+            await _TimeContract.setCurrentTimeIndex(11);
+
+            // Not updated yet!
+            result = await _ValidatorContract.getCommissionRate(validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(100000));
+
+            // Not updated yet!
+            result = await _ValidatorContract.getCommissionRateOfDay(8, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(100000));
+
+            await _TimeContract.setCurrentTimeIndex(12);
+
+            // Updated
+            result = await _ValidatorContract.getCommissionRate(validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(150000));
+
+            // Updated
+            result = await _ValidatorContract.getCommissionRateOfDay(12, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(150000));
+        });
     });
 
     describe("Manage disabled validator", async () => {
