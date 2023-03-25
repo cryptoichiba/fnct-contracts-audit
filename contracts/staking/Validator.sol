@@ -108,7 +108,8 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable {
      */
     function getCommissionRate(address validator) override public view returns(uint) {
         if ( _commissionChangeRequests[validator].startDate > 0 &&
-            _timeContract.getCurrentTimeIndex() > _commissionChangeRequests[validator].startDate ) {
+            _timeContract.getCurrentTimeIndex() >= _commissionChangeRequests[validator].startDate ) {
+            // Already applied
             return _commissionChangeRequests[validator].targetCommission;
         }
         return _validators[validator].commission;
@@ -130,6 +131,7 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable {
         if ( requestCount > 0 ) {
             for ( uint i = requestCount - 1; i >= 0; i-- ) {
                 if ( _commissionChangeRequestHistory[validator][i].startDate <= day ) {
+                    // Already applied
                     return _commissionChangeRequestHistory[validator][i].targetCommission;
                 }
                 if ( i == 0 ) break;
@@ -161,7 +163,8 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable {
      */
     function getScheduledCommissionRate(address validator) override external view returns (uint, uint) {
         if ( _commissionChangeRequests[validator].startDate > 0 &&
-            _timeContract.getCurrentTimeIndex() <= _commissionChangeRequests[validator].startDate ) {
+            _timeContract.getCurrentTimeIndex() < _commissionChangeRequests[validator].startDate ) {
+            // Not applied
             return (_commissionChangeRequests[validator].startDate, _commissionChangeRequests[validator].targetCommission);
         }
         return (0, 0);
@@ -240,7 +243,8 @@ contract ValidatorContract is IValidator, UnrenounceableOwnable {
 
         // Update current value if previous scheduled commission is applied
         if ( _commissionChangeRequests[msg.sender].startDate > 0 &&
-            _timeContract.getCurrentTimeIndex() > _commissionChangeRequests[msg.sender].startDate ) {
+            _timeContract.getCurrentTimeIndex() >= _commissionChangeRequests[msg.sender].startDate ) {
+            // Already applied
             _validators[msg.sender].commission = _commissionChangeRequests[msg.sender].targetCommission;
         }
 

@@ -164,7 +164,7 @@ describe("Validator", function () {
                 await _ValidatorContract.getCommissionRate(validator1.address)
             ).to.equal(100000);
 
-            // Scheduled commission rate
+            // Scheduled commission rate / scheduled at 0+7 day
             scheduled = await _ValidatorContract.getScheduledCommissionRate(validator1.address)
             await expect(scheduled[0]).to.equal(ethers.BigNumber.from(7));
             await expect(scheduled[1]).to.equal(ethers.BigNumber.from(120000));
@@ -204,12 +204,12 @@ describe("Validator", function () {
                 await _ValidatorContract.getCommissionRate(validator1.address)
             ).to.equal(100000);
 
-            // Scheduled commission rate
+            // Scheduled commission rate / scheduled at 0+7 day
             scheduled = await _ValidatorContract.getScheduledCommissionRate(validator1.address)
             await expect(scheduled[0]).to.equal(ethers.BigNumber.from(7));
             await expect(scheduled[1]).to.equal(ethers.BigNumber.from(200000));
 
-            await _TimeContract.setCurrentTimeIndex(7);
+            await _TimeContract.setCurrentTimeIndex(6);
 
             // Still scheduled
             scheduled = await _ValidatorContract.getScheduledCommissionRate(validator1.address)
@@ -226,7 +226,7 @@ describe("Validator", function () {
             await expect(validator["data"]).to.equal("0x02");
             await expect(validator["commission"]).to.equal(ethers.BigNumber.from(100000));
 
-            await _TimeContract.setCurrentTimeIndex(8);
+            await _TimeContract.setCurrentTimeIndex(7);
 
             // Changed
             await expect(
@@ -238,7 +238,7 @@ describe("Validator", function () {
             await expect(validator["data"]).to.equal("0x02");
             await expect(validator["commission"]).to.equal(ethers.BigNumber.from(200000));
 
-            // No longer scheduled
+            // Already applied, no longer scheduled
             scheduled = await _ValidatorContract.getScheduledCommissionRate(validator1.address)
             await expect(scheduled[0]).to.equal(ethers.BigNumber.from(0));
             await expect(scheduled[1]).to.equal(ethers.BigNumber.from(0));
@@ -250,7 +250,7 @@ describe("Validator", function () {
 
             // Scheduled commission rate
             scheduled = await _ValidatorContract.getScheduledCommissionRate(validator1.address)
-            await expect(scheduled[0]).to.equal(ethers.BigNumber.from(15));
+            await expect(scheduled[0]).to.equal(ethers.BigNumber.from(14));
             await expect(scheduled[1]).to.equal(ethers.BigNumber.from(180000));
 
             // Still 200000
@@ -354,6 +354,26 @@ describe("Validator", function () {
               _ValidatorContract.connect(validator1).updateValidator(50000, "0x01")
             ).not.to.be.reverted;
 
+            await _TimeContract.setCurrentTimeIndex(7);
+
+            // Not updated yet
+            result = await _ValidatorContract.getCommissionRate(validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(100000));
+
+            // Not updated yet
+            result = await _ValidatorContract.getCommissionRateOfDay(7, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(100000));
+
+            await _TimeContract.setCurrentTimeIndex(8);
+
+            // Updated
+            result = await _ValidatorContract.getCommissionRate(validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(50000));
+
+            // Updated
+            result = await _ValidatorContract.getCommissionRateOfDay(8, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(50000));
+
             await _TimeContract.setCurrentTimeIndex(10);
 
             // Updated
@@ -382,6 +402,26 @@ describe("Validator", function () {
             await expect(
               _ValidatorContract.connect(validator1).updateCommissionRate(50000)
             ).not.to.be.reverted;
+
+            await _TimeContract.setCurrentTimeIndex(7);
+
+            // Not updated yet
+            result = await _ValidatorContract.getCommissionRate(validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(100000));
+
+            // Not updated yet
+            result = await _ValidatorContract.getCommissionRateOfDay(7, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(100000));
+
+            await _TimeContract.setCurrentTimeIndex(8);
+
+            // Updated
+            result = await _ValidatorContract.getCommissionRate(validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(50000));
+
+            // Updated
+            result = await _ValidatorContract.getCommissionRateOfDay(8, validator1.address)
+            await expect(result).to.equal(ethers.BigNumber.from(50000));
 
             await _TimeContract.setCurrentTimeIndex(10);
 
