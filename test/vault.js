@@ -87,7 +87,7 @@ describe('VaultContract', () => {
 
       context('When the day is more than minimum holding period', async () => {
         it('Should return unlock amount', async () => {
-          await _TimeContract.setCurrentTimeIndex(180);
+          await _TimeContract.setCurrentTimeIndex(181);
 
           const unlockable = await _VaultContract.calcUnlockable(owner.address);
 
@@ -97,7 +97,7 @@ describe('VaultContract', () => {
 
       context('When the day is not more than minimum holding period', async () => {
         it('Should return 0 amount', async () => {
-          await _TimeContract.setCurrentTimeIndex(179);
+          await _TimeContract.setCurrentTimeIndex(180);
 
           const unlockable = await _VaultContract.calcUnlockable(owner.address);
           expect(unlockable.toString()).to.equal('0');
@@ -161,7 +161,7 @@ describe('VaultContract', () => {
             await _TimeContract.setCurrentTimeIndex(0);
             await _FNCToken.connect(owner).approve(_VaultContract.address, BigInt(amount));
             await _VaultContract.connect(owner).addLock(owner.address, BigInt(amount));
-            await _TimeContract.setCurrentTimeIndex(180);
+            await _TimeContract.setCurrentTimeIndex(181);
             await _VaultContract.connect(owner).unlock(owner.address, BigInt(amount));
           })
 
@@ -188,12 +188,12 @@ describe('VaultContract', () => {
             await _TimeContract.setCurrentTimeIndex(0);
             await _FNCToken.connect(owner).approve(_VaultContract.address, BigInt(amount));
             await _VaultContract.connect(owner).addLock(owner.address, BigInt(amount));
-            await _TimeContract.setCurrentTimeIndex(180);
+            await _TimeContract.setCurrentTimeIndex(182);
             await _VaultContract.connect(owner).unlock(owner.address, BigInt(amount));
           })
 
           it('does not include future unlocks', async () => {
-            const day = 179;
+            const day = 180;
             const lock = await _VaultContract.calcLockOfDay(day, owner.address);
             expect(lock.toString()).to.equal(amount.toString());
           })
@@ -228,7 +228,7 @@ describe('VaultContract', () => {
           await _FNCToken.connect(owner).approve(_VaultContract.address, BigInt(amount));
           await _TimeContract.setCurrentTimeIndex(0);
           await _VaultContract.connect(owner).addLock(owner.address, BigInt(amount));
-          await _TimeContract.setCurrentTimeIndex(180);
+          await _TimeContract.setCurrentTimeIndex(181);
         })
 
         it('Should unlock amount', async () => {
