@@ -167,6 +167,16 @@ interface IReward is IFixedReward {
      */
     function revokePoolMaintainer(address maintainer) external;
 
+    /**
+     * @notice Grants `sender` as a meta transaction worker.
+     */
+    function grantMetaTransactionWorker(address worker) external;
+
+    /**
+     * @notice Revokes `sender` as a meta transaction worker.
+     */
+    function revokeMetaTransactionWorker(address worker) external;
+
     /// self Txs
 
     /**
@@ -272,4 +282,14 @@ interface IReward is IFixedReward {
      * @notice Emitted when `sender` revoked `maintainer` as a pool maintainer.
      */
     event PoolMaintainerRevoked(address indexed sender, address indexed maintainer);
+
+    /**
+     * @notice Emitted when `sender` granted `worker` as a meta transaction worker.
+     */
+    event MetaTransactionWorkerGranted(address indexed sender, address indexed worker);
+
+    /**
+     * @notice Emitted when `sender` revoked `worker` as a meta transaction worker.
+     */
+    event MetaTransactionWorkerRevoked(address indexed sender, address indexed worker);
 }

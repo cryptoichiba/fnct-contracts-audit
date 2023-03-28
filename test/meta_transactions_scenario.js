@@ -21,6 +21,7 @@ describe("Meta Transaction: Day0", function () {
         const { TimeContract, FNCToken, ValidatorContract, VaultContract, StakingContract, LogFileHash, RNG,
                 ChainlinkWrapper, ChainlinkCoordinator, RewardContract } = await deployAll(false, owner);
         await VaultContract.setupStakingRole(StakingContract.address);
+        await RewardContract.grantMetaTransactionWorker(worker.address);
         _TimeContract = TimeContract, _FNCToken = FNCToken, _ValidatorContract = ValidatorContract, _VaultContract = VaultContract,
             _StakingContract = StakingContract, _LogFileHash = LogFileHash, _RNG = RNG,
             _ChainlinkWrapper = ChainlinkWrapper, _ChainlinkCoordinator = ChainlinkCoordinator, _RewardContract = RewardContract;
@@ -311,7 +312,7 @@ describe("Meta Transaction: Day0", function () {
                 ticketForCTH.receiver = constants.ZERO_ADDRESS;
                 await expect(
                   _RewardContract.connect(nobody).claimCTHReward(ticketForCTH)
-                ).to.be.revertedWith("Reward: Receiver is zero address")
+                ).to.be.revertedWith("Reward: Receiver is not msg.sender")
 
                 // QSP-5
                 ticketForCTH.receiver = delegator1.address
@@ -339,7 +340,7 @@ describe("Meta Transaction: Day0", function () {
                 ticketForCTH.receiver = constants.ZERO_ADDRESS;
                 await expect(
                   _RewardContract.connect(nobody).claimRewards(ticketForCTH)
-                ).to.be.revertedWith("Reward: Receiver is zero address")
+                ).to.be.revertedWith("Reward: Receiver is not msg.sender")
 
                 // QSP-5
                 ticketForCTH.receiver = delegator1.address
@@ -369,7 +370,7 @@ describe("Meta Transaction: Day0", function () {
                 ticketForStaking.receiver = constants.ZERO_ADDRESS;
                 await expect(
                   _RewardContract.connect(nobody).metaClaimStakingReward(ticketForStaking, 45)
-                ).to.be.revertedWith("Reward: Receiver is zero address")
+                ).to.be.revertedWith("AccessControl: account " + nobody.address.toLowerCase() + " is missing role 0xd25f5a08b80ad1a27e13a8f4433fd55aa90c6c6cbdd1728214c074ab594c9a6d");
 
                 // QSP-5
                 ticketForStaking.receiver = delegator1.address
@@ -397,7 +398,7 @@ describe("Meta Transaction: Day0", function () {
                 ticketForCTH.receiver = constants.ZERO_ADDRESS;
                 await expect(
                   _RewardContract.connect(nobody).metaClaimCTHReward(ticketForCTH)
-                ).to.be.revertedWith("Reward: Receiver is zero address")
+                ).to.be.revertedWith("AccessControl: account " + nobody.address.toLowerCase() + " is missing role 0xd25f5a08b80ad1a27e13a8f4433fd55aa90c6c6cbdd1728214c074ab594c9a6d");
 
                 // QSP-5
                 ticketForCTH.receiver = delegator1.address
@@ -429,7 +430,7 @@ describe("Meta Transaction: Day0", function () {
                       ticketForStaking: ticketForStakingDummy,
                       ticketForCTH: ticketForCTH
                   }, 45)
-                ).not.to.be.reverted
+                ).to.be.revertedWith("AccessControl: account " + nobody.address.toLowerCase() + " is missing role 0xd25f5a08b80ad1a27e13a8f4433fd55aa90c6c6cbdd1728214c074ab594c9a6d");
 
                 // QSP-5
                 ticketForCTH.receiver = delegator1.address
@@ -461,7 +462,7 @@ describe("Meta Transaction: Day0", function () {
                       ticketForStaking: ticketForStaking,
                       ticketForCTH: ticketForCTHDummy
                   }, 45)
-                ).not.to.be.reverted
+                ).to.be.revertedWith("AccessControl: account " + nobody.address.toLowerCase() + " is missing role 0xd25f5a08b80ad1a27e13a8f4433fd55aa90c6c6cbdd1728214c074ab594c9a6d");
 
                 // QSP-5
                 ticketForStaking.receiver = delegator1.address
@@ -493,7 +494,7 @@ describe("Meta Transaction: Day0", function () {
                       ticketForStaking: ticketForStakingDummy,
                       ticketForCTH: ticketForCTH
                   }], 45)
-                ).not.to.be.reverted
+                ).to.be.revertedWith("AccessControl: account " + nobody.address.toLowerCase() + " is missing role 0xd25f5a08b80ad1a27e13a8f4433fd55aa90c6c6cbdd1728214c074ab594c9a6d");
 
                 // QSP-5
                 ticketForCTH.receiver = delegator1.address
@@ -525,7 +526,7 @@ describe("Meta Transaction: Day0", function () {
                       ticketForStaking: ticketForStaking,
                       ticketForCTH: ticketForCTHDummy
                   }], 45)
-                ).not.to.be.reverted
+                ).to.be.revertedWith("AccessControl: account " + nobody.address.toLowerCase() + " is missing role 0xd25f5a08b80ad1a27e13a8f4433fd55aa90c6c6cbdd1728214c074ab594c9a6d");
 
                 // QSP-5
                 ticketForStaking.receiver = delegator1.address

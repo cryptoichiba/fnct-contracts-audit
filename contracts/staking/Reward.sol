@@ -50,6 +50,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
     address _ticketSigner;
 
     bytes32 public constant POOL_MAINTAINER_ROLE = keccak256("POOL_MAINTAINER_ROLE");
+    bytes32 public constant META_TRANSACTION_SENDER_ROLE = keccak256("META_TRANSACTION_SENDER_ROLE");
 
     modifier isValidStakingRewardTicket(StakingRewardTransferTicket calldata ticket) {
         if ( ticket.receiver != address(0) ) {
@@ -115,6 +116,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
         _ticketSigner = owner();
 
         _grantRole(POOL_MAINTAINER_ROLE, msg.sender);
+        _grantRole(META_TRANSACTION_SENDER_ROLE, msg.sender);
     }
 
     /**
@@ -284,6 +286,30 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
         _revokeRole(POOL_MAINTAINER_ROLE, maintainer);
 
         emit PoolMaintainerRevoked(msg.sender, maintainer);
+    }
+
+    /**
+     * @notice Grants `worker` as a meta transaction worker.
+     *
+     * Emits `MetaTransactionWorkerGranted` event.
+     */
+    function grantMetaTransactionWorker(address worker) external onlyOwner {
+        require(worker != address(0x0), "Reward: Worker is zero address");
+        _grantRole(META_TRANSACTION_SENDER_ROLE, worker);
+
+        emit MetaTransactionWorkerGranted(msg.sender, worker);
+    }
+
+    /**
+     * @notice Revokes `worker` as a meta transaction worker.
+     *
+     * Emits `MetaTransactionWorkerRevoked` event.
+     */
+    function revokeMetaTransactionWorker(address worker) external onlyOwner {
+        require(worker != address(0x0), "Reward: Worker is zero address");
+        _revokeRole(META_TRANSACTION_SENDER_ROLE, worker);
+
+        emit MetaTransactionWorkerRevoked(msg.sender, worker);
     }
 
     /**
@@ -557,7 +583,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
     function claimCTHReward(CTHRewardTransferTicket calldata ticket)
         isValidCTHRewardTicket(ticket)
         override external returns(uint256) {
-        require(ticket.receiver != address(0x0), "Reward: Receiver is zero address");
+        require(ticket.receiver == msg.sender, "Reward: Receiver is not msg.sender");
 
         _usedBodySignatureHash[keccak256(ticket.bodySignature)] = true;
         return _transferCTHReward(ticket.receiver, ticket.accumulatedAmount);
@@ -571,7 +597,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
     function claimRewards(CTHRewardTransferTicket calldata ticket)
         isValidCTHRewardTicket(ticket)
         override external returns(uint256) {
-        require(ticket.receiver != address(0x0), "Reward: Receiver is zero address");
+        require(ticket.receiver == msg.sender, "Reward: Receiver is not msg.sender");
 
         _usedBodySignatureHash[keccak256(ticket.bodySignature)] = true;
         uint256 transferredAmount = _transferStakingReward(msg.sender, defaultLimitDays) + _transferCTHReward(ticket.receiver, ticket.accumulatedAmount);
@@ -587,6 +613,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
      * @notice Meta transaction for claimStakingReward with signed `ticket`.
      */
     function metaClaimStakingReward(StakingRewardTransferTicket calldata ticket, uint limitDays)
+        onlyRole(META_TRANSACTION_SENDER_ROLE)
         isValidStakingRewardTicket(ticket)
         override external returns(uint256) {
         require(ticket.receiver != address(0x0), "Reward: Receiver is zero address");
@@ -599,6 +626,7 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
      * @notice Meta transaction for claimCTHReward with signed `ticket`.
      */
     function metaClaimCTHReward(CTHRewardTransferTicket calldata ticket)
+        onlyRole(META_TRANSACTION_SENDER_ROLE)
         isValidCTHRewardTicket(ticket)
         override external returns(uint256) {
         require(ticket.receiver != address(0x0), "Reward: Receiver is zero address");
@@ -610,14 +638,18 @@ contract RewardContract is IReward, UnrenounceableOwnable, AccessControl {
     /**
      * @notice Meta transaction for claimRewards with signed `tickets`.
      */
-    function metaClaimRewards(RewardTransferTickets calldata tickets, uint limitDays) override external returns(uint256) {
+    function metaClaimRewards(RewardTransferTickets calldata tickets, uint limitDays)
+        onlyRole(META_TRANSACTION_SENDER_ROLE)
+        override external returns(uint256) {
         return _transferRewards(tickets, limitDays);
     }
 
     /**
      * @notice Meta transaction of claimRewards for multiple users with signed `tickets` and returns total received token amount.
      */
-    function metaClaimRewardsWithList(RewardTransferTickets[] calldata ticketsList, uint limitDays) override external returns(uint256) {
+    function metaClaimRewardsWithList(RewardTransferTickets[] calldata ticketsList, uint limitDays)
+        onlyRole(META_TRANSACTION_SENDER_ROLE)
+        override external returns(uint256) {
         uint256 transferredAmount = 0;
         for ( uint i = 0; i < ticketsList.length; i++ ) {
             transferredAmount += _transferRewards(ticketsList[i], limitDays);

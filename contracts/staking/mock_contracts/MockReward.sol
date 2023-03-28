@@ -143,6 +143,14 @@ contract MockRewardContract is IReward, Ownable {
         maintainer;
     }
 
+    function grantMetaTransactionWorker(address worker) pure external {
+        worker;
+    }
+
+    function revokeMetaTransactionWorker(address worker) pure external {
+        worker;
+    }
+
     /**********************************************************************************************************
     * self Txs
     **********************************************************************************************************/

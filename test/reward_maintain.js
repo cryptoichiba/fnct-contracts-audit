@@ -3,6 +3,10 @@ const {ethers} = require('hardhat');
 const { deployLogFileHash, deployTimeContract, deployStakingContract, deployFNCToken, deployVaultContract,
   deployValidatorContract, deployRewardContract, deployRNG, WinnerStatus
 } = require('./support/deploy');
+const {
+  createStakingRewardTransferTicket,
+  createCTHRewardTransferTicket
+} = require("./support/ticket");
 
 describe('Maintain RewardContract', (_) => {
   let _FNCToken = null;
@@ -13,10 +17,10 @@ describe('Maintain RewardContract', (_) => {
   let _ValidatorContract = null;
   let _LogFileHash = null;
   let _RNG = null, _ChainlinkWrapper = null, _ChainlinkCoordinator = null;
-  let owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, newTicketSigner, poolMaintainer, nobody;
+  let owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, newTicketSigner, poolMaintainer, signer, metaTransactionWorker, nobody;
 
   before(async () => {
-    [owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, newTicketSigner, poolMaintainer, nobody] = await ethers.getSigners();
+    [owner, validator1, validator2, validator3, delegator1, delegator2, delegator3, newTicketSigner, poolMaintainer, signer, metaTransactionWorker, nobody] = await ethers.getSigners();
     _FNCToken = await deployFNCToken(owner);
     _TimeContract = await deployTimeContract(3600, true, owner);
     _VaultContract = await deployVaultContract(_TimeContract, _FNCToken, false, owner);
@@ -119,6 +123,86 @@ describe('Maintain RewardContract', (_) => {
 
     await expect(
       _RewardContract.connect(nobody).revokePoolMaintainer(nobody.address)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
+  })
+
+  it('Success: Transaction worker/Staking', async () => {
+    const ticketForStaking = await createStakingRewardTransferTicket(delegator1, 0, signer);
+    const ticketForStaking2 = await createStakingRewardTransferTicket(delegator1, 0, signer);
+    const ticketForCTH = await createCTHRewardTransferTicket(delegator1, 0, signer);
+    const ticketForCTH2 = await createCTHRewardTransferTicket(delegator1, 0, signer);
+
+    await expect(
+      _RewardContract.connect(owner).setTicketSigner(signer.address)
+    ).not.to.be.reverted;
+
+    // non-worker yet
+    await expect(
+      _RewardContract.connect(metaTransactionWorker).metaClaimStakingReward(ticketForStaking, 45)
+    ).to.be.reverted
+
+    await expect(
+      _RewardContract.connect(metaTransactionWorker).metaClaimCTHReward(ticketForCTH)
+    ).to.be.reverted
+
+    await expect(
+      _RewardContract.connect(metaTransactionWorker).metaClaimRewards({
+        ticketForStaking: ticketForStaking,
+        ticketForCTH: ticketForCTH
+      }, 45)
+    ).to.be.reverted
+
+    await expect(
+      _RewardContract.connect(metaTransactionWorker).metaClaimRewardsWithList([], 45)
+    ).to.be.reverted
+
+    await expect(
+      _RewardContract.connect(owner).grantMetaTransactionWorker(metaTransactionWorker.address)
+    ).to.be.emit(_RewardContract, "MetaTransactionWorkerGranted").withArgs(owner.address, metaTransactionWorker.address);
+
+    // become worker
+    await expect(
+      _RewardContract.connect(metaTransactionWorker).metaClaimStakingReward(ticketForStaking, 45)
+    ).not.to.be.reverted
+
+    await expect(
+      _RewardContract.connect(metaTransactionWorker).metaClaimCTHReward(ticketForCTH)
+    ).not.to.be.reverted
+
+    await expect(
+      _RewardContract.connect(metaTransactionWorker).metaClaimRewards({
+        ticketForStaking: ticketForStaking2,
+        ticketForCTH: ticketForCTH2
+      }, 45)
+    ).not.to.be.reverted
+
+    await expect(
+      _RewardContract.connect(metaTransactionWorker).metaClaimRewardsWithList([], 45)
+    ).not.to.be.reverted
+
+
+    await expect(
+      _RewardContract.connect(owner).revokeMetaTransactionWorker(metaTransactionWorker.address)
+    ).to.be.emit(_RewardContract, "MetaTransactionWorkerRevoked").withArgs(owner.address, metaTransactionWorker.address);
+  })
+
+  it('Fail: Transaction worker is zero address', async () => {
+    await expect(
+      _RewardContract.connect(owner).grantMetaTransactionWorker(ethers.constants.AddressZero)
+    ).to.be.revertedWith("Reward: Worker is zero address");
+
+    await expect(
+      _RewardContract.connect(owner).revokeMetaTransactionWorker(ethers.constants.AddressZero)
+    ).to.be.revertedWith("Reward: Worker is zero address");
+  })
+
+  it('Fail: non-owner', async () => {
+    await expect(
+      _RewardContract.connect(nobody).grantMetaTransactionWorker(nobody.address)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
+
+    await expect(
+      _RewardContract.connect(nobody).revokeMetaTransactionWorker(nobody.address)
     ).to.be.revertedWith("Ownable: caller is not the owner");
   })
 

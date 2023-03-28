@@ -12,6 +12,7 @@ describe("Whole CTH reward scenario with prod contract: Day0", function () {
         [owner, user1, user2, nobody, worker] = await ethers.getSigners();
         const { TimeContract, FNCToken, ValidatorContract, VaultContract, StakingContract, LogFileHash, RNG, RewardContract } = await deployAll(false, owner);
         await VaultContract.setupStakingRole(StakingContract.address);
+        await RewardContract.grantMetaTransactionWorker(worker.address);
         _TimeContract = TimeContract, _FNCToken = FNCToken, _ValidatorContract = ValidatorContract, _VaultContract = VaultContract,
             _StakingContract = StakingContract, _LogFileHash = LogFileHash, _RNG = RNG, _RewardContract = RewardContract;
     });
@@ -125,9 +126,7 @@ describe("Whole CTH reward scenario with prod contract: Day0", function () {
             const ticket = await createCTHRewardTransferTicket(user1, amount);
             await expect(
                 _RewardContract.connect(nobody).claimCTHReward(ticket)
-            ).not.to.be.reverted;
-            expect(await _FNCToken.balanceOf(user1.address)).to.equal(amount);
-            expect(await _FNCToken.balanceOf(nobody.address)).to.equal(0);
+            ).to.be.revertedWith("Reward: Receiver is not msg.sender");
         });
 
         it("Success: Receive with valid signature(meta tx)", async function () {
