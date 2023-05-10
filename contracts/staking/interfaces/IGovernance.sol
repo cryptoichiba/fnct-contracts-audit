@@ -22,14 +22,6 @@ interface IGovernance is IFixedGovernance {
 
     struct ProposalStatus {
         Status status;
-        uint256[] amounts;
-        uint blankVotingRate;
-    }
-
-    struct TallyStatus {
-        bool status;
-        uint day;
-        uint tallyNumber;
     }
 
     enum Status {
@@ -38,17 +30,13 @@ interface IGovernance is IFixedGovernance {
         close
     }
 
-    event VotePropose(bytes32 indexed ipfsHash, address indexed voter, uint[] voteOptions);
+    event VotePropose(bytes32 indexed ipfsHash, address indexed voter, uint day, uint256 totalAmount, uint[] voteOptions);
     event Propose(bytes32 ipfsHash, uint optionNumber, uint256 minimumStakingAmount, bool multipleVote, uint startVotingDay, uint endVotingDay);
-    event TallyVotingComplete(bytes32 ipfsHash, uint day);
-    event TallyVoting(bytes32 ipfsHash, uint day, uint from, uint to);
 
     function propose(bytes32 ipfsHash, uint optionNumber, uint256 minimumStakingAmount, bool multipleVote, uint startVotingDay, uint endVotingDay) external;
     function getProposalStatus(bytes32 ipfsHash, uint day) external view returns(ProposalStatus memory);
     function getProposalList(uint from, uint quantity) external view returns(Proposal[] memory);
+    function getVotingPowerOfDay(uint day, address voterAddress) external returns(uint256);
     function vote(uint256 issue_number, uint[] calldata selection) external;
-    function tallyVoting(bytes32 ipfsHash, uint day, uint from, uint to) external;
-    function getTallyVotingResult(bytes32 ipfsHash, uint day) external view returns (TallyStatus memory);
-    function getVotedHistory(bytes32 ipfsHash, address voterAddress, uint from, uint quantity) external view returns(VotingHistory[] memory);
-    function getVotedList(bytes32 ipfsHash, uint from, uint quantity) external view returns(VotingHistory[] memory);
+    function getLatestVoteOfUserOnProposal(bytes32 ipfsHash, address voterAddress) external view returns (VotingHistory memory);
 }
