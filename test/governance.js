@@ -18,8 +18,12 @@ describe('GovernanceContract', () => {
   const voterAmount = 1 * 10 ** 18;
   const ipfsHashNumber = 0;
 
+  const voteOptions1 = [1, 3, 4];
+  const voteOptions2 = [1, 2, 4];
+  const voteOptions3 = [2, 4];
+
   beforeEach(async () => {
-    [owner, voter, issueProposer] = await ethers.getSigners();
+    [owner, voter1, voter2, voter3, issueProposer, tallyExecuter] = await ethers.getSigners();
 
     const TimeContract = await ethers.getContractFactory('MockTimeContract');
     _FNCToken = await deployFNCToken(owner);
@@ -32,12 +36,19 @@ describe('GovernanceContract', () => {
     await _VaultContract.setupStakingRole(owner.address);
 
     await _FNCToken.connect(owner).approve(_VaultContract.address, BigInt(ownerAmount));
-    await _FNCToken.connect(voter).approve(_VaultContract.address, BigInt(voterAmount));
+    await _FNCToken.connect(voter1).approve(_VaultContract.address, BigInt(voterAmount));
+    await _FNCToken.connect(voter2).approve(_VaultContract.address, BigInt(voterAmount));
+    await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
 
-    await _FNCToken.connect(owner).transfer(voter.address, BigInt(voterAmount));
-    await _VaultContract.connect(owner).addLock(voter.address, BigInt(voterAmount));
+    await _FNCToken.connect(owner).transfer(voter1.address, BigInt(voterAmount));
+    await _FNCToken.connect(owner).transfer(voter2.address, BigInt(voterAmount));
+    await _FNCToken.connect(owner).transfer(voter3.address, BigInt(voterAmount));
+    await _VaultContract.connect(owner).addLock(voter1.address, BigInt(voterAmount));
+    await _VaultContract.connect(owner).addLock(voter2.address, BigInt(voterAmount));
+    await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voterAmount));
 
     await _GovernanceContract.connect(owner).setupIssueProposerRole(issueProposer.address);
+    await _GovernanceContract.connect(owner).setupTallyVotingRole(tallyExecuter.address);
   });
 
   it('Should deploy smart contract properly', async () => {
@@ -129,7 +140,7 @@ describe('GovernanceContract', () => {
     context('When execute method by unprivileged user', async() => {
       it('Fail: Governance', async () => {
         await expect(
-          _GovernanceContract.connect(voter).propose(
+          _GovernanceContract.connect(voter1).propose(
             ipfsHash,
             optionNumber,
             BigInt(minimumStakingAmount),
@@ -138,6 +149,41 @@ describe('GovernanceContract', () => {
             endVotingDay
           )
         ).to.be.revertedWith(`AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is missing role 0x8c0b481d3b4e913a4153d609c74102ff37f3729681b837d6c90495f5420fed52`);
+      });
+    });
+  });
+
+  describe('getProposal', async () => {
+    beforeEach(async () => {
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _GovernanceContract.connect(issueProposer).propose(
+        ipfsHash,
+        optionNumber,
+        BigInt(minimumStakingAmount),
+        multipleVote,
+        startVotingDay,
+        endVotingDay
+      );
+    });
+
+    context('When ipfsHash is valid', async() => {
+      it('Should return proposal', async () => {
+        const actual = await _GovernanceContract.connect(voter1).getProposal(ipfsHash);
+
+        expect(ipfsHash).to.equal(actual.ipfsHash);
+        expect(optionNumber).to.equal(actual.optionNumber);
+        expect(BigInt(minimumStakingAmount)).to.equal(actual.minimumStakingAmount);
+        expect(startVotingDay).to.equal(actual.startVotingDay);
+        expect(endVotingDay).to.equal(actual.endVotingDay);
+      });
+    });
+
+    context('When params is invalid', async() => {
+      const invalidIpfsHash = '0xb94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde8';
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(voter1).getProposal(invalidIpfsHash)
+        ).to.be.revertedWith("Governance: ipfs hash is wrong");
       });
     });
   });
@@ -155,12 +201,12 @@ describe('GovernanceContract', () => {
         startVotingDay,
         endVotingDay
       );
-      await _GovernanceContract.connect(voter).vote(ipfsHashNumber, voteOptions);
+      await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions);
     });
 
     context('When ipfsHash is valid', async() => {
       it('Should return proposal status', async () => {
-        const actual = await _GovernanceContract.connect(voter).getProposalStatus(ipfsHash, day);
+        const actual = await _GovernanceContract.connect(voter1).getProposalStatus(ipfsHash, day);
 
         expect(1).to.equal(actual.status);
       });
@@ -261,7 +307,7 @@ describe('GovernanceContract', () => {
 
     context('When params is valid', async() => {
       it('Should return staking amount', async () => {
-        const actual = await _GovernanceContract.connect(voter).getVotingPowerOfDay(day, voter.address);
+        const actual = await _GovernanceContract.connect(voter1).getVotingPowerOfDay(day, voter1.address);
         expect(BigInt(voterAmount)).to.equal(actual);
 
       });
@@ -286,11 +332,11 @@ describe('GovernanceContract', () => {
     context('When params is valid', async() => {
       it('Should emit event including msg.sender, ipfsHash, voteAmounts', async () => {
         await expect(
-          _GovernanceContract.connect(voter).vote(ipfsHashNumber, voteOptions)
+          _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions)
         ).to.emit(
           _GovernanceContract, 'VotePropose'
         ).withArgs(
-          ipfsHash, voter.address, day, BigInt(voterAmount), voteOptions
+          ipfsHash, voter1.address, day, BigInt(voterAmount), voteOptions
         );
       });
     });
@@ -299,16 +345,16 @@ describe('GovernanceContract', () => {
       const secondVoteOptions = [1, 4];
 
       beforeEach(async () => {
-        await _GovernanceContract.connect(voter).vote(ipfsHashNumber, voteOptions);
+        await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions);
       })
 
       it('Should emit event including msg.sender, ipfsHash, voteAmounts', async () => {
         await expect(
-          _GovernanceContract.connect(voter).vote(ipfsHashNumber, secondVoteOptions)
+          _GovernanceContract.connect(voter1).vote(ipfsHashNumber, secondVoteOptions)
         ).to.emit(
           _GovernanceContract, 'VotePropose'
         ).withArgs(
-          ipfsHash, voter.address, day, BigInt(voterAmount), secondVoteOptions
+          ipfsHash, voter1.address, day, BigInt(voterAmount), secondVoteOptions
         );
       });
     });
@@ -318,7 +364,7 @@ describe('GovernanceContract', () => {
 
       it('Fail: Governance', async () => {
         await expect(
-          _GovernanceContract.connect(voter).vote(invalidIpfsHashNumber, voteOptions)
+          _GovernanceContract.connect(voter1).vote(invalidIpfsHashNumber, voteOptions)
         ).to.be.revertedWith("Governance: Proposal issune number is wrong");
       });
     });
@@ -341,7 +387,7 @@ describe('GovernanceContract', () => {
 
       it('Fail: Governance', async () => {
         await expect(
-          _GovernanceContract.connect(voter).vote(ipfsHashNumber, voteOptions)
+          _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions)
         ).to.be.revertedWith("Governance: No Single votes.");
       });
     });
@@ -361,7 +407,7 @@ describe('GovernanceContract', () => {
 
       it('Fail: Governance', async () => {
         await expect(
-          _GovernanceContract.connect(voter).vote(ipfsHashNumber, voteOptions)
+          _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions)
         ).to.be.revertedWith("Governance: Proposal voting is not start");
       });
     });
@@ -381,7 +427,7 @@ describe('GovernanceContract', () => {
 
       it('Fail: Governance', async () => {
         await expect(
-          _GovernanceContract.connect(voter).vote(ipfsHashNumber, voteOptions)
+          _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions)
         ).to.be.revertedWith("Governance: Proposal voting is finished");
       });
     });
@@ -402,8 +448,147 @@ describe('GovernanceContract', () => {
 
       it('Fail: Governance', async () => {
         await expect(
-          _GovernanceContract.connect(voter).vote(ipfsHashNumber, voteOptions)
+          _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions)
         ).to.be.revertedWith("Governance: voting Options is invalid");
+      });
+    });
+  });
+
+  describe('tallyNumberOfVotesOnProposal', async () => {
+    beforeEach(async () => {
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _GovernanceContract.connect(issueProposer).propose(
+        ipfsHash,
+        optionNumber,
+        BigInt(minimumStakingAmount),
+        multipleVote, startVotingDay,
+        endVotingDay
+      );
+
+      await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions);
+      await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, voteOptions);
+      await _GovernanceContract.connect(voter3).vote(ipfsHashNumber, voteOptions);
+    });
+
+    const amountVotesToTally = 2;
+    const finalizedProposalCurrentBatchIndex = 2;
+
+    context('When params is valid', async() => {
+      it('Should emit event including ipfsHash, day', async () => {
+        await expect(
+          _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+            ipfsHash,
+            amountVotesToTally
+          )
+        ).to.emit(
+          _GovernanceContract, 'ResetAmountsForTally'
+        ).withArgs(
+          ipfsHash,
+          day
+        );
+      });
+
+      it('Should emit event including ipfsHash, amountVotesToTally', async () => {
+        await expect(
+          _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+            ipfsHash,
+            amountVotesToTally
+          )
+        ).to.emit(
+          _GovernanceContract, 'Tally'
+        ).withArgs(
+          ipfsHash,
+          day,
+          amountVotesToTally,
+          finalizedProposalCurrentBatchIndex
+        );
+      });
+
+      it('Should emit event including ipfsHash, amountVotesToTally', async () => {
+        const amountVotesToTally = 2;
+        const finalizedProposalCurrentBatchIndex = 3;
+
+        await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+          ipfsHash,
+          amountVotesToTally
+        );
+
+        await expect(
+          _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+            ipfsHash,
+            amountVotesToTally
+          )
+        ).to.emit(
+          _GovernanceContract, 'TallyComplete'
+        ).withArgs(
+          ipfsHash,
+          day,
+          amountVotesToTally,
+          finalizedProposalCurrentBatchIndex
+        );
+      });
+    });
+
+    context('When params is invalid', async() => {
+      const invalidIpfsHash = '0xb94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde8';
+
+      it('Should return voting history', async () => {
+        await expect(
+          _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+            invalidIpfsHash,
+            amountVotesToTally
+          )
+        ).to.be.revertedWith("Governance: ipfs hash is wrong");
+      });
+    });
+  });
+
+  describe('getTallyStatus', async () => {
+    beforeEach(async () => {
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _GovernanceContract.connect(issueProposer).propose(
+        ipfsHash,
+        optionNumber,
+        BigInt(minimumStakingAmount),
+        multipleVote, startVotingDay,
+        endVotingDay
+      );
+
+      await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions);
+      await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, voteOptions);
+      await _GovernanceContract.connect(voter3).vote(ipfsHashNumber, voteOptions);
+
+      await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+        ipfsHash,
+        amountVotesToTally
+      );
+      await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+        ipfsHash,
+        amountVotesToTally
+      );
+    });
+
+    const amountVotesToTally = 2;
+    const finalizedProposalCurrentBatchIndex = 2;
+    const toralFinalizedIndex = 3;
+
+    context('When params is valid', async() => {
+      it('Should return tally status', async () => {
+        const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
+
+        expect(day).to.equal(actual.day);
+        expect(true).to.equal(actual.completed);
+        expect(toralFinalizedIndex).to.equal(3);
+      });
+    });
+
+    context('When params is invalid', async() => {
+      const invalidIpfsHash = '0xb94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde8';
+
+      it('Should return voting history', async () => {
+        await expect(
+          _GovernanceContract.connect(voter1).getTallyStatus(invalidIpfsHash, day)
+        ).to.be.revertedWith("Governance: ipfs hash is wrong");
       });
     });
   });
@@ -419,16 +604,15 @@ describe('GovernanceContract', () => {
         startVotingDay,
         endVotingDay
       );
-      await _GovernanceContract.connect(voter).vote(ipfsHashNumber, voteOptions);
+      await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions);
     });
 
     context('When params is valid', async() => {
       it('Should return voting history', async () => {
-        const actual = await _GovernanceContract.connect(voter).getLatestVoteOfUserOnProposal(ipfsHash, voter.address);
+        const actual = await _GovernanceContract.connect(voter1).getLatestVoteOfUserOnProposal(ipfsHash, voter1.address);
 
         expect(day).to.equal(actual.day);
-        expect(voter.address).to.equal(actual.voterAddress);
-        expect(BigInt(voterAmount)).to.equal(BigInt(actual.votingAmount));
+        expect(voter1.address).to.equal(actual.voterAddress);
         expect(voteOptions[0]).to.equal(actual.voteOptions[0]);
         expect(voteOptions[1]).to.equal(actual.voteOptions[1]);
         expect(voteOptions[2]).to.equal(actual.voteOptions[2]);
@@ -440,11 +624,542 @@ describe('GovernanceContract', () => {
 
       it('Should return voting history', async () => {
         await expect(
-          _GovernanceContract.connect(voter).getLatestVoteOfUserOnProposal(
+          _GovernanceContract.connect(voter1).getLatestVoteOfUserOnProposal(
             invalidIpfsHash,
-            voter.address
+            voter1.address
           )
         ).to.be.revertedWith("Governance: ipfs hash is wrong");
+      });
+    });
+  });
+
+  describe('Use case testing', async () => {
+    const endVotingDay = 190;
+
+    beforeEach(async () => {
+      await _GovernanceContract.connect(issueProposer).propose(
+        ipfsHash,
+        optionNumber,
+        BigInt(minimumStakingAmount),
+        multipleVote,
+        startVotingDay,
+        endVotingDay
+      );
+
+      // day 1
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions1);
+      await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, voteOptions2);
+      await _GovernanceContract.connect(voter3).vote(ipfsHashNumber, voteOptions3);
+    });
+
+    context('when voting period is 10 days and talling is performed multiple times during that period', async() => {
+      const voter3DailyStakingAmount = 0.2 * 10 ** 18;
+      const blankVoting = [];
+
+      context('when talling the 182st day', async() => {
+        beforeEach(async () => {
+          // day 181 (180 days required to unlock staking)
+          await _TimeContract.setCurrentTimeIndex(181);
+          await _VaultContract.connect(owner).unlock(voter1.address, BigInt(voterAmount));
+
+          // day 182
+          await _TimeContract.setCurrentTimeIndex(182);
+          await _FNCToken.connect(voter1).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter1.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).unlock(voter2.address, BigInt(voterAmount));
+        });
+
+        it('should return proposal status for 182 days', async () => {
+          const day = 182;
+          const amountVotesToTally = 3;
+          const index = 3;
+
+          _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+            ipfsHash,
+            amountVotesToTally
+          );
+          const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
+
+          expect(true).to.equal(actual.completed);
+          expect(day).to.equal(actual.day);
+          expect(3).to.equal(actual.tallyIndex);
+          expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[0]);
+          expect(BigInt("500000000000000000")).to.equal(actual.votingAmounts[1]);
+          expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[2]);
+          expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[3]);
+          expect(BigInt("0")).to.equal(actual.blankVotingAmount);
+          expect(BigInt("0")).to.equal(actual.blankVotingRate);
+        });
+      });
+
+      context('when talling the 184st day', async() => {
+        beforeEach(async () => {
+          // day 181 (180 days required to unlock staking)
+          await _TimeContract.setCurrentTimeIndex(181);
+          await _VaultContract.connect(owner).unlock(voter1.address, BigInt(voterAmount));
+
+          // day 182
+          await _TimeContract.setCurrentTimeIndex(182);
+          await _FNCToken.connect(voter1).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter1.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).unlock(voter2.address, BigInt(voterAmount));
+
+          // day 183
+          await _TimeContract.setCurrentTimeIndex(183);
+          await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions2);
+
+          // day 184
+          await _TimeContract.setCurrentTimeIndex(184);
+          await _FNCToken.connect(voter2).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter2.address, BigInt(voterAmount));
+          await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, voteOptions2);
+        });
+
+        it('should return proposal status for 184 days', async () => {
+          const day = 184;
+          const amountVotesToTally = 3;
+
+          _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+            ipfsHash,
+            amountVotesToTally
+          );
+          const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
+          expect(true).to.equal(actual.completed);
+          expect(day).to.equal(actual.day);
+          expect(3).to.equal(actual.tallyIndex);
+          expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[0]);
+          expect(BigInt("1166666666666666666")).to.equal(actual.votingAmounts[1]);
+          expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
+          expect(BigInt("1166666666666666666")).to.equal(actual.votingAmounts[3]);
+          expect(BigInt("0")).to.equal(actual.blankVotingAmount);
+          expect(BigInt("0")).to.equal(actual.blankVotingRate);
+        });
+      });
+
+      context('when talling the 185st day', async() => {
+        beforeEach(async () => {
+          // day 181 (180 days required to unlock staking)
+          await _TimeContract.setCurrentTimeIndex(181);
+          await _VaultContract.connect(owner).unlock(voter1.address, BigInt(voterAmount));
+
+          // day 182
+          await _TimeContract.setCurrentTimeIndex(182);
+          await _FNCToken.connect(voter1).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter1.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).unlock(voter2.address, BigInt(voterAmount));
+
+          // day 183
+          await _TimeContract.setCurrentTimeIndex(183);
+          await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions2);
+
+          // day 184
+          await _TimeContract.setCurrentTimeIndex(184);
+          await _FNCToken.connect(voter2).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter2.address, BigInt(voterAmount));
+          await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, voteOptions2);
+
+          // day 185
+          await _TimeContract.setCurrentTimeIndex(185);
+          await _VaultContract.connect(owner).unlock(voter3.address, BigInt(voterAmount));
+        });
+
+        context('when executing tallyNumberOfVotesOnProposal from 0 to 1', async() => {
+          it('should return proposal status for 185 days from 0 to 1', async () => {
+            const day = 185;
+            const amountVotesToTally = 2;
+
+            _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              ipfsHash,
+              amountVotesToTally
+            );
+            const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
+
+            expect(false).to.equal(actual.completed);
+            expect(day).to.equal(actual.day);
+            expect(2).to.equal(actual.tallyIndex);
+            expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[0]);
+            expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[1]);
+            expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
+            expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[3]);
+            expect(BigInt("0")).to.equal(actual.blankVotingAmount);
+            expect(BigInt("0")).to.equal(actual.blankVotingRate);
+          });
+        });
+
+        context('when executing tallyNumberOfVotesOnProposal from 1 to 2', async() => {
+          const day = 185;
+          const firstAmountVotesToTally = 2;
+          const firstFinalizedProposalCurrentBatchIndex = 2;
+          const secondAmountVotesToTally = 1;
+          const secondFinalizedProposalCurrentBatchIndex = 3;
+
+          it('should return proposal status for 185 days from 1 to 2', async () => {
+            _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              ipfsHash,
+              firstAmountVotesToTally
+            );
+
+            _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              ipfsHash,
+              secondAmountVotesToTally
+            );
+            const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
+            expect(true).to.equal(actual.completed);
+            expect(day).to.equal(actual.day);
+            expect(3).to.equal(actual.tallyIndex);
+            expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[0]);
+            expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[1]);
+            expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
+            expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[3]);
+            expect(BigInt("0")).to.equal(actual.blankVotingAmount);
+            expect(BigInt("0")).to.equal(actual.blankVotingRate);
+          });
+
+          it('Should emit event including ipfsHash, day', async () => {
+            await expect(
+              _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+                ipfsHash,
+                firstAmountVotesToTally
+              )
+            ).to.emit(
+              _GovernanceContract, 'ResetAmountsForTally'
+            ).withArgs(
+              ipfsHash,
+              day
+            );
+          });
+
+          it('Should emit event including ipfsHash, amountVotesToTally', async () => {
+            await expect(
+              _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+                ipfsHash,
+                firstAmountVotesToTally
+              )
+            ).to.emit(
+              _GovernanceContract, 'Tally'
+            ).withArgs(
+              ipfsHash,
+              day,
+              firstAmountVotesToTally,
+              firstFinalizedProposalCurrentBatchIndex
+            );
+          });
+
+          it('Should emit event including ipfsHash, amountVotesToTally', async () => {
+            await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              ipfsHash,
+              firstAmountVotesToTally
+            );
+
+            await expect(
+              _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+                ipfsHash,
+                secondAmountVotesToTally
+              )
+            ).to.emit(
+              _GovernanceContract, 'TallyComplete'
+            ).withArgs(
+              ipfsHash,
+              day,
+              secondAmountVotesToTally,
+              secondFinalizedProposalCurrentBatchIndex
+            );
+          });
+        });
+      });
+
+      context('when talling the 188st day', async() => {
+        beforeEach(async () => {
+          // day 181 (180 days required to unlock staking)
+          await _TimeContract.setCurrentTimeIndex(181);
+          await _VaultContract.connect(owner).unlock(voter1.address, BigInt(voterAmount));
+
+          // day 182
+          await _TimeContract.setCurrentTimeIndex(182);
+          await _FNCToken.connect(voter1).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter1.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).unlock(voter2.address, BigInt(voterAmount));
+
+          // day 183
+          await _TimeContract.setCurrentTimeIndex(183);
+          await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions2);
+
+          // day 184
+          await _TimeContract.setCurrentTimeIndex(184);
+          await _FNCToken.connect(voter2).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter2.address, BigInt(voterAmount));
+          await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, voteOptions2);
+
+          // day 185
+          await _TimeContract.setCurrentTimeIndex(185);
+          await _VaultContract.connect(owner).unlock(voter3.address, BigInt(voterAmount));
+
+          // day 186
+          await _TimeContract.setCurrentTimeIndex(186);
+          await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+
+          // day 187
+          await _TimeContract.setCurrentTimeIndex(187);
+          await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+
+          // day 188
+          await _TimeContract.setCurrentTimeIndex(188);
+          await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+        });
+
+        it('should return proposal status for 188 days', async () => {
+          const day = 188;
+          const amountVotesToTally = 3;
+
+          _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+            ipfsHash,
+            amountVotesToTally
+          );
+          const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
+          expect(true).to.equal(actual.completed);
+          expect(day).to.equal(actual.day);
+          expect(3).to.equal(actual.tallyIndex);
+          expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[0]);
+          expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[1]);
+          expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
+          expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[3]);
+          expect(BigInt("0")).to.equal(actual.blankVotingAmount);
+          expect(BigInt("0")).to.equal(actual.blankVotingRate);
+        });
+      });
+
+      context('when talling the 190st day(Proposal voting is finished)', async() => {
+        beforeEach(async () => {
+          // day 181 (180 days required to unlock staking)
+          await _TimeContract.setCurrentTimeIndex(181);
+          await _VaultContract.connect(owner).unlock(voter1.address, BigInt(voterAmount));
+
+          // day 182
+          await _TimeContract.setCurrentTimeIndex(182);
+          await _FNCToken.connect(voter1).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter1.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).unlock(voter2.address, BigInt(voterAmount));
+
+          // day 183
+          await _TimeContract.setCurrentTimeIndex(183);
+          await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions2);
+
+          // day 184
+          await _TimeContract.setCurrentTimeIndex(184);
+          await _FNCToken.connect(voter2).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter2.address, BigInt(voterAmount));
+          await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, voteOptions2);
+
+          // day 185
+          await _TimeContract.setCurrentTimeIndex(185);
+          await _VaultContract.connect(owner).unlock(voter3.address, BigInt(voterAmount));
+
+          // day 186
+          await _TimeContract.setCurrentTimeIndex(186);
+          await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+
+          // day 187
+          await _TimeContract.setCurrentTimeIndex(187);
+          await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+
+          // day 188
+          await _TimeContract.setCurrentTimeIndex(188);
+          await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+
+          // day 189
+          await _TimeContract.setCurrentTimeIndex(189);
+          await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, blankVoting);
+          await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+
+          // day 190
+          await _TimeContract.setCurrentTimeIndex(190);
+        });
+
+        const day = 190;
+        const amountVotesToTally = 3;
+
+        it('should return proposal status for 190 days', async () => {
+          _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+            ipfsHash,
+            amountVotesToTally
+          );
+
+          const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
+
+          expect(true).to.equal(actual.completed);
+          expect(day).to.equal(actual.day);
+          expect(3).to.equal(actual.tallyIndex);
+          expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[0]);
+          expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[1]);
+          expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
+          expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[3]);
+          expect(BigInt("1000000000000000000")).to.equal(actual.blankVotingAmount);
+          expect(BigInt("333333")).to.equal(actual.blankVotingRate);
+        });
+
+        it('Should emit event including ipfsHash, day', async () => {
+          await expect(
+            _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              ipfsHash,
+              amountVotesToTally
+            )
+          ).to.emit(
+            _GovernanceContract, 'ResetAmountsForTally'
+          ).withArgs(
+            ipfsHash,
+            day
+          );
+        });
+
+        it('Should emit event including ipfsHash, amountVotesToTally', async () => {
+          const firstAmountVotesToTally = 2;
+          const firstFinalizedProposalCurrentBatchIndex = 2;
+
+          await expect(
+            _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              ipfsHash,
+              firstAmountVotesToTally
+            )
+          ).to.emit(
+            _GovernanceContract, 'Tally'
+          ).withArgs(
+            ipfsHash,
+            day,
+            firstAmountVotesToTally,
+            firstFinalizedProposalCurrentBatchIndex
+          );
+        });
+
+        it('Should emit event including ipfsHash, amountVotesToTally', async () => {
+          const firstAmountVotesToTally = 2;
+          const firstFinalizedProposalCurrentBatchIndex = 2;
+          const secondAmountVotesToTally = 1;
+          const secondFinalizedProposalCurrentBatchIndex = 3;
+
+          await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              ipfsHash,
+              firstAmountVotesToTally
+          );
+
+          await expect(
+            _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              ipfsHash,
+              secondAmountVotesToTally
+            )
+          ).to.emit(
+            _GovernanceContract, 'TallyComplete'
+          ).withArgs(
+            ipfsHash,
+            day,
+            secondAmountVotesToTally,
+            secondFinalizedProposalCurrentBatchIndex
+          );
+        });
+      });
+
+      context('when talling the 191st day(Proposal voting is finished)', async() => {
+        beforeEach(async () => {
+          // day 181 (180 days required to unlock staking)
+          await _TimeContract.setCurrentTimeIndex(181);
+          await _VaultContract.connect(owner).unlock(voter1.address, BigInt(voterAmount));
+
+          // day 182
+          await _TimeContract.setCurrentTimeIndex(182);
+          await _FNCToken.connect(voter1).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter1.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).unlock(voter2.address, BigInt(voterAmount));
+
+          // day 183
+          await _TimeContract.setCurrentTimeIndex(183);
+          await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions2);
+
+          // day 184
+          await _TimeContract.setCurrentTimeIndex(184);
+          await _FNCToken.connect(voter2).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter2.address, BigInt(voterAmount));
+          await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, voteOptions2);
+
+          // day 185
+          await _TimeContract.setCurrentTimeIndex(185);
+          await _VaultContract.connect(owner).unlock(voter3.address, BigInt(voterAmount));
+
+          // day 186
+          await _TimeContract.setCurrentTimeIndex(186);
+          await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+
+          // day 187
+          await _TimeContract.setCurrentTimeIndex(187);
+          await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+
+          // day 188
+          await _TimeContract.setCurrentTimeIndex(188);
+          await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+
+          // day 189
+          await _TimeContract.setCurrentTimeIndex(189);
+          await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, blankVoting);
+          await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
+          await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+
+          // day 190
+          await _TimeContract.setCurrentTimeIndex(190);
+
+          // day 191
+          await _TimeContract.setCurrentTimeIndex(191);
+        });
+
+        const day = 190;
+        const amountVotesToTally = 3;
+
+        it('should return proposal status for 191 days', async () => {
+          _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+            ipfsHash,
+            amountVotesToTally
+          );
+
+          const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
+          expect(true).to.equal(actual.completed);
+          expect(day).to.equal(actual.day);
+          expect(3).to.equal(actual.tallyIndex);
+          expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[0]);
+          expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[1]);
+          expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
+          expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[3]);
+          expect(BigInt("1000000000000000000")).to.equal(actual.blankVotingAmount);
+          expect(BigInt("333333")).to.equal(actual.blankVotingRate);
+        });
+
+        context('when talling number of votes on proposal is finished)', async() => {
+          it('Fail: Governance', async () => {
+            _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              ipfsHash,
+              amountVotesToTally
+            );
+
+            const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
+
+            await expect(
+              _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+                ipfsHash,
+                amountVotesToTally
+              )
+            ).to.be.revertedWith("Tally number of votes on proposal has already finished");
+          });
+        });
       });
     });
   });
