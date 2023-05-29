@@ -1,0 +1,24 @@
+{
+  "name": "hardhat-project",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
+    "@openzeppelin/test-helpers": "^0.5.16",
+    "commander": "^9.4.1",
+    "hardhat": "^2.12.2",
+    "hardhat-gas-reporter": "^1.0.9",
+    "mocha": "^10.1.0",
+    "uuid": "^9.0.0"
+  },
+  "scripts": {
+    "coverage": "hardhat coverage",
+    "polygon-test": "hardhat test --network polygon"
+  },
+  "dependencies": {
+    "@chainlink/contracts": "^0.5.1",
+    "@openzeppelin/contracts": "^4.7.3",
+    "@truffle/hdwallet-provider": "^2.0.14",
+    "truffle": "^5.6.3",
+    "web3": "^1.7.5"
+  }
+}
