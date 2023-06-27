@@ -188,6 +188,56 @@ describe('GovernanceContract', () => {
     });
   });
 
+  describe('getProposalNumber', async () => {
+    const proposalNumber = 0;
+    const secondProposalNumber = 1;
+    const secondIpfsHash = '0xf8220bacb0bf5bd8ca33a890184b66b35fb64647274b4b9fb4ff90e68f77a5a7';
+
+    beforeEach(async () => {
+      await _TimeContract.setCurrentTimeIndex(1);
+      await _GovernanceContract.connect(issueProposer).propose(
+        ipfsHash,
+        optionNumber,
+        BigInt(minimumStakingAmount),
+        multipleVote,
+        startVotingDay,
+        endVotingDay
+      );
+
+      await _GovernanceContract.connect(issueProposer).propose(
+        secondIpfsHash,
+        optionNumber,
+        BigInt(minimumStakingAmount),
+        multipleVote,
+        startVotingDay,
+        endVotingDay
+      );
+    });
+
+    context('When ipfsHash is valid', async() => {
+      it('Should return proposal', async () => {
+        const actual = await _GovernanceContract.connect(voter1).getProposalNumber(ipfsHash);
+
+        expect(proposalNumber).to.equal(actual);
+      });
+
+      it('Should return second proposal', async () => {
+        const actual = await _GovernanceContract.connect(voter1).getProposalNumber(secondIpfsHash);
+
+        expect(secondProposalNumber).to.equal(actual);
+      });
+    });
+
+    context('When params is invalid', async() => {
+      const invalidIpfsHash = '0xb94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde8';
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(voter1).getProposalNumber(invalidIpfsHash)
+        ).to.be.revertedWith("Governance: ipfs hash is wrong");
+      });
+    });
+  });
+
   describe('getProposalStatus', async () => {
     const endVotingDay = 200;
 
@@ -295,8 +345,18 @@ describe('GovernanceContract', () => {
         expect(multipleVote).to.equal(actual[2].multipleVote);
         expect(startVotingDay4).to.equal(actual[2].startVotingDay);
         expect(endVotingDay).to.equal(actual[2].endVotingDay);
-      })
-    })
+      });
+    });
+
+    context('When from is invalid', async() => {
+      const invalidFrom = 100;
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).getProposalList(invalidFrom, quantity)
+        ).to.be.revertedWith("Governance: 'from' is greater than number of proposal");
+      });
+    });
   });
 
   describe('getVotingPowerOfDay', async () => {

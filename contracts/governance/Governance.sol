@@ -12,8 +12,12 @@ import "hardhat/console.sol";
 contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable {
     ITime private immutable _timeContract;
     IVault private immutable _vaultContract;
+    // variable to ensure _proposalHashToIndex is incremented each time a proposal is added
+    uint private _currentIndexOfProposal;
 
     mapping(bytes32 => Proposal) _proposal;
+    // variable to record the index number of each proposal
+    mapping(bytes32 => uint) _proposalHashToIndex;
     mapping(bytes32 => address[]) _proposalVoters;
     mapping(bytes32 => bool) _validatingIpfsHash;
     // variable that records the number of unique voters for each proposal
@@ -64,6 +68,23 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
 
     /**
      * @notice Record proposal contents on the blockchain
+     * @notice
+     * @notice [Example(Proposal)]
+     * @notice   What NFT projects would you like finance.inc to publish next season?
+     * @notice     - Option 1: Manga
+     * @notice     - Option 2: Game
+     * @notice     - Option 3: Anime
+     * @notice     Multiple selection possible
+     * @notice     Minimum staking amount is 100FNCT
+     * @notice
+     * @notice [Example(Voting)]
+     * @notice   - User A(200 FNCT*): Select [1, 2]
+     * @notice   - User B(100 FNCT*): Select [] (blank vote)
+     * @notice   - User C(90 FNCT*): Select [3]
+     * @notice     * User's staking amount
+     * @notice   User A's voting is valid, 100 FNCT minutes will be voted for options 1 and 2.
+     * @notice   User B's voting is valid, voted blank voting.
+     * @notice   User C's voting is invalid due to less than minimum staking amount.
      *
      * @param ipfsHash              Hash value of ipfs.
      * @param optionNumber          Number of proposal's option number.
@@ -107,6 +128,9 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
 
         _proposalLength = _proposalList.length;
         _validatingIpfsHash[ipfsHash] = true;
+        // added index number to extract specific proposal in _findPropose method.
+        _proposalHashToIndex[ipfsHash] = _currentIndexOfProposal;
+        _currentIndexOfProposal++;
 
         emit Propose(
             ipfsHash,
@@ -129,18 +153,24 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
     }
 
     /**
+     * @notice get Proposal number
+     *
+     * @param ipfsHash              Hash value of ipfs.
+     */
+    function getProposalNumber(bytes32 ipfsHash) override external view returns (uint){
+        require(_validatingIpfsHash[ipfsHash], "Governance: ipfs hash is wrong");
+        return _proposalHashToIndex[ipfsHash];
+    }
+
+    /**
      * @notice find Proposal
      *
      * @param ipfsHash              Hash value of ipfs.
      */
     function _findPropose(bytes32 ipfsHash) internal view returns(Proposal memory) {
         Proposal memory selectedPropose;
-        for (uint i = 0; i < _proposalLength; i++ ) {
-            if ( _proposalList[i].ipfsHash == ipfsHash ) {
-                selectedPropose = _proposalList[i];
-                break;
-            }
-        }
+        uint proposalIndex = _proposalHashToIndex[ipfsHash];
+        selectedPropose = _proposalList[proposalIndex];
 
         return selectedPropose;
     }
@@ -201,8 +231,11 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param quantity              Number of data.
      */
     function getProposalList(uint from, uint quantity) override external view returns(Proposal[] memory) {
+        require(from < _proposalLength, "Governance: 'from' is greater than number of proposal");
+
         uint recordCount;
         uint count;
+
         for ( uint i = 0; i < quantity ; i++ ) {
             if (_proposalLength == from + i) break;
 
@@ -312,12 +345,14 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
     }
 
     /**
-     * @notice vote for proposal.
-     * @notice In "selection", the numbers of the choices are entered sequentially from 1.
-     * @notice Example: If you select options 1, 2, and 3 for a proposal, "selection" will be [1, 2, 3].
-     * @notice Only users with minimum stake or higher can vote and User can vote multiple times.
-     * @notice Votes for each proposal are evenly distributed by the number of stakes.
-     * @notice Example: When stake number is 100 and "selection" is [1, 3], 50 will be distributed to options 1 and 3.
+     * @notice Method: vote for proposal.
+     * @notice
+     * @notice Spec:
+     * @notice   - In "selection", the numbers of the choices are entered sequentially from 1.
+     * @notice   - Example: If you select options 1, 2, and 3 for a proposal, "selection" will be [1, 2, 3].
+     * @notice   - Only users with minimum stake or higher can vote and User can vote multiple times.
+     * @notice   - Votes for each proposal are evenly distributed by the number of stakes.
+     * @notice   - Example: When stake number is 100 and "selection" is [1, 3], 50 will be distributed to options 1 and 3.
      *
      * @param issue_number          Proposal number.
      * @param selection             Array for option number to vote.
@@ -463,13 +498,23 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
     }
 
     /**
-     * @notice method: tally number of votes on proposal.
-     * @notice specEncourage voting by displaying the voting status to users during the voting period.
-     * @notice Allows tallying of votes even before proposals are closed.
-     * @notice tallyNumberOfVotesOnProposal tally the date of the proposal end date(endVotingDay) when talling after the proposal end date.
-     * @notice If tally is completed within a day, tally processing will not be performed again.
-     * @notice Tallied for the number of users of the value of amountVotesToTally.
-     * @notice "Tally" event emit when tally is done. And "TallyComplete" event emit when tally is completed.
+     * @notice Method: tally number of votes on proposal.
+     * @notice
+     * @notice Spec:
+     * @notice   - Encourage voting by displaying the voting status to users during the voting period.
+     * @notice   - Allows tallying of votes even before proposals are closed.
+     * @notice   - tallyNumberOfVotesOnProposal tally the date of the proposal end date(endVotingDay) when talling after the proposal end date.
+     * @notice   - If tally is completed within a day, tally processing will not be performed again.
+     * @notice   - Tallied for the number of users of the value of amountVotesToTally.
+     * @notice   - "Tally" event emit when tally is done. And "TallyComplete" event emit when tally is completed.
+     * @notice
+     * @notice Others:
+     * @notice   - After executing tallyNumberOfVotesOnProposal, check the tally result with getTallyStatus.
+     * @notice   - BlankVotingRate is included in the tally results(TallyStatus), and you can check the ratio of blank votes.
+     * @notice   - If the ratio of blank votes exceeds the predetermined threshold, the proposal will be rejected.
+     * @notice   - When a user votes for an option, tally the number of votes for each option.
+     * @notice   - When a user votes blank voting, the ratio of blank votes(blankVotingRate) is tallied and proposal is checked if it is valid.
+     *
      * @param ipfsHash              Hash value of ipfs.
      * @param amountVotesToTally    Amount votes to tally.
      */
@@ -529,6 +574,14 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
                 // If the user votes without selecting anything(voteOptions.length is 0), it will be a blank vote.
                 // A blank vote is when a voter intentionally does not choose any option in vote, leaving the vote blank.
                 // If the proportion of blank votes exceeds the predetermined threshold, the proposal will be rejected.
+                // Example:
+                //   There is proposal that is valid if the percentage of blank votes is 30% or less.
+                //   3 users are voting on the proposal.
+                //   2 users voted blank voting.
+                //     User A(200 FNCT*): Select [1, 2]
+                //     User B(100 FNCT*): Select []
+                //     User C(100 FNCT*): Select []
+                //   50% of the total votes are blank votes, so the proposal is invalid.
                 _calcBlankVotingAmount(
                     ipfsHash,
                     tallyDay,
