@@ -231,7 +231,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param quantity              Number of data.
      */
     function getProposalList(uint from, uint quantity) override external view returns(Proposal[] memory) {
-        require(from < _proposalLength, "Governance: 'from' is greater than number of proposal");
+        require(from <= _proposalLength, "Governance: 'from' is greater than number of proposal");
 
         uint recordCount;
         uint count;
