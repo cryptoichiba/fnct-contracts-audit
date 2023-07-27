@@ -345,6 +345,28 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
     }
 
     /**
+     * @notice Check if voting options are ascending and unique.
+     * @notice Arrays with voting options like [1,1,2] and [3,2,1] are invalid.
+     *
+     * @param voteOptions           Options of voting.
+     */
+    function _validatingVoteOptions(uint[] memory voteOptions) internal pure returns(bool) {
+      bool result = true;
+      uint length = voteOptions.length;
+
+      // If voteOptions is less than or equal to 1, return
+      if (length < 2) return result;
+
+      for(uint i = 0; i < length - 1; i++) {
+          if (voteOptions[i] >= voteOptions[i + 1]) {
+              result = false;
+          }
+      }
+
+      return result;
+    }
+
+    /**
      * @notice Method: vote for proposal.
      * @notice
      * @notice Spec:
@@ -362,6 +384,9 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         Proposal memory selectedPropose = _proposalList[issue_number];
         bytes32 ipfsHash = selectedPropose.ipfsHash;
         uint[] memory votingOptions = selection;
+
+        require(_validatingVoteOptions(votingOptions), "Governance: Voting options must be ascending and unique");
+
         uint voteOptionsLength = votingOptions.length;
         uint today = _timeContract.getCurrentTimeIndex();
         uint256 totalStakingAmount = getVotingPowerOfDay(today, msg.sender);
