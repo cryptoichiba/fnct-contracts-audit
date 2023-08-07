@@ -493,7 +493,10 @@ describe('GovernanceContract', () => {
     });
 
     context('Voting Options is invalid ', async() => {
-      const voteOptions = [0, 1, 3];
+      const voteOptions1 = [0, 1, 3];
+      const voteOptions2 = [1, 1, 3];
+      const voteOptions3 = [3, 2, 1];
+      const voteOptions4 = [1, 2, 3, 4, 5];
 
       beforeEach(async () => {
         await _GovernanceContract.connect(issueProposer).propose(
@@ -509,6 +512,24 @@ describe('GovernanceContract', () => {
       it('Fail: Governance', async () => {
         await expect(
           _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions)
+        ).to.be.revertedWith("Governance: voting Options is invalid");
+      });
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions2)
+        ).to.be.revertedWith("Governance: Voting options must be ascending and unique");
+      });
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions3)
+        ).to.be.revertedWith("Governance: Voting options must be ascending and unique");
+      });
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions4)
         ).to.be.revertedWith("Governance: voting Options is invalid");
       });
     });
