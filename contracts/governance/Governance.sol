@@ -134,7 +134,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         require(optionNumber != 0, "Governance: OptionNumber is invalid.");
         require(startVotingDay < endVotingDay, "Governance: startVotingDay or endVotingDay is wrong");
         uint today = _timeContract.getCurrentTimeIndex();
-        require(_checkStartToEndDay(today, startVotingDay), "Governance: startVotingDay is wrong");
+        require(today <= startVotingDay, "Governance: startVotingDay is wrong");
         require(!_validatingIpfsHash[ipfsHash], "Governance: specified ipfsHash is already registered");
 
         _proposalList.push(
@@ -244,10 +244,12 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         ProposalStatus memory proposalStatus;
         Status status;
 
-        if (_checkStartToEndDay(selectedPropose.startVotingDay, day)) {
-            status = Status.ongoing;
-        } else if (_checkStartToEndDay(selectedPropose.endVotingDay, day)) {
+        if (selectedPropose.endVotingDay < day) {
             status = Status.close;
+        } else if (day < selectedPropose.startVotingDay) {
+            status = Status.before;
+        } else {
+            status = Status.ongoing;
         }
 
         proposalStatus.status = Status(status);
@@ -276,16 +278,6 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         }
 
         return slicedProposal;
-    }
-
-    /**
-     * @notice compare starDay and endDay.
-     *
-     * @param startDay                  Day of starting.
-     * @param endDay                    Day of ending.
-     */
-    function _checkStartToEndDay(uint startDay, uint endDay) internal pure returns(bool) {
-        return startDay <= endDay;
     }
 
     /**

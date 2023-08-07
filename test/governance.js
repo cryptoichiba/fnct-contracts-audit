@@ -375,24 +375,71 @@ describe('GovernanceContract', () => {
   describe('getProposalStatus', async () => {
     const endVotingDay = 200;
 
-    beforeEach(async () => {
-      await _TimeContract.setCurrentTimeIndex(1);
-      await _GovernanceContract.connect(issueProposer).propose(
-        ipfsHash,
-        optionNumber,
-        BigInt(minimumStakingAmount),
-        multipleVote,
-        startVotingDay,
-        endVotingDay
-      );
-      await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions);
-    });
-
     context('When ipfsHash is valid', async() => {
-      it('Should return proposal status', async () => {
-        const actual = await _GovernanceContract.connect(voter1).getProposalStatus(ipfsHash, day);
+      context('When day is 0(before)', async() => {
+        const day = 0;
 
-        expect(1).to.equal(actual.status);
+        beforeEach(async () => {
+          await _TimeContract.setCurrentTimeIndex(0);
+          await _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            optionNumber,
+            BigInt(minimumStakingAmount),
+            multipleVote,
+            startVotingDay,
+            endVotingDay
+          );
+        });
+
+        it('Should return proposal status', async () => {
+          const actual = await _GovernanceContract.connect(voter1).getProposalStatus(ipfsHash, day);
+
+          expect(0).to.equal(actual.status);
+        });
+      });
+
+      context('When day is 1(ongoing)', async() => {
+        const day = 1;
+
+        beforeEach(async () => {
+          await _TimeContract.setCurrentTimeIndex(0);
+          await _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            optionNumber,
+            BigInt(minimumStakingAmount),
+            multipleVote,
+            startVotingDay,
+            endVotingDay
+          );
+        });
+
+        it('Should return proposal status', async () => {
+          const actual = await _GovernanceContract.connect(voter1).getProposalStatus(ipfsHash, day);
+
+          expect(1).to.equal(actual.status);
+        });
+      });
+
+      context('When day is 1(finished)', async() => {
+        const day = 201;
+
+        beforeEach(async () => {
+          await _TimeContract.setCurrentTimeIndex(0);
+          await _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            optionNumber,
+            BigInt(minimumStakingAmount),
+            multipleVote,
+            startVotingDay,
+            endVotingDay
+          );
+        });
+
+        it('Should return proposal status', async () => {
+          const actual = await _GovernanceContract.connect(voter1).getProposalStatus(ipfsHash, day);
+
+          expect(2).to.equal(actual.status);
+        });
       });
     });
 
