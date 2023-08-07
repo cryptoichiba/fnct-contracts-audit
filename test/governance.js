@@ -137,6 +137,32 @@ describe('GovernanceContract', () => {
       });
     });
 
+    context('When ipfsHash is invalid', async() => {
+      beforeEach(async () => {
+        await _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            optionNumber,
+            BigInt(minimumStakingAmount),
+            multipleVote,
+            startVotingDay,
+            endVotingDay
+          );
+      });
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            optionNumber,
+            BigInt(minimumStakingAmount),
+            multipleVote,
+            startVotingDay,
+            endVotingDay
+          )
+        ).to.be.revertedWith("Governance: specified ipfsHash is already registered");
+      });
+    });
+
     context('When execute method by unprivileged user', async() => {
       it('Fail: Governance', async () => {
         await expect(
@@ -455,14 +481,6 @@ describe('GovernanceContract', () => {
     context('When proposal voting is not start', async() => {
       beforeEach(async () => {
         await _TimeContract.setCurrentTimeIndex(0);
-        await _GovernanceContract.connect(issueProposer).propose(
-          ipfsHash,
-          optionNumber,
-          BigInt(minimumStakingAmount),
-          multipleVote,
-          startVotingDay,
-          endVotingDay
-        );
       })
 
       it('Fail: Governance', async () => {
@@ -474,14 +492,6 @@ describe('GovernanceContract', () => {
 
     context('Governance: Proposal voting is finished', async() => {
       beforeEach(async () => {
-        await _GovernanceContract.connect(issueProposer).propose(
-          ipfsHash,
-          optionNumber,
-          BigInt(minimumStakingAmount),
-          multipleVote,
-          startVotingDay,
-          endVotingDay
-        );
         await _TimeContract.setCurrentTimeIndex(11);
       })
 
@@ -497,17 +507,6 @@ describe('GovernanceContract', () => {
       const voteOptions2 = [1, 1, 3];
       const voteOptions3 = [3, 2, 1];
       const voteOptions4 = [1, 2, 3, 4, 5];
-
-      beforeEach(async () => {
-        await _GovernanceContract.connect(issueProposer).propose(
-          ipfsHash,
-          optionNumber,
-          BigInt(minimumStakingAmount),
-          multipleVote,
-          startVotingDay,
-          endVotingDay
-        );
-      })
 
       it('Fail: Governance', async () => {
         await expect(

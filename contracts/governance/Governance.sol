@@ -105,6 +105,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         require(startVotingDay < endVotingDay, "Governance: startVotingDay or endVotingDay is wrong");
         uint today = _timeContract.getCurrentTimeIndex();
         require(_checkStartToEndDay(today, startVotingDay), "Governance: startVotingDay is wrong");
+        require(!_validatingIpfsHash[ipfsHash], "Governance: specified ipfsHash is already registered");
 
         _proposalList.push(
             Proposal(
