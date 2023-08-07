@@ -263,49 +263,19 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      */
     function getProposalList(uint from, uint quantity) override external view returns(Proposal[] memory) {
         require(from <= _proposalLength, "Governance: 'from' is greater than number of proposal");
+        uint actualQuantity = quantity;
 
-        uint recordCount;
-        uint count;
-
-        for ( uint i = 0; i < quantity ; i++ ) {
-            if (_proposalLength == from + i) break;
-
-            if (_proposalList[from + i].ipfsHash != 0) {
-                recordCount++;
-            }
+        if (from + quantity > _proposalLength) {
+            actualQuantity = _proposalLength - from;
         }
 
-        uint length = quantity;
-        if ( quantity > recordCount ) {
-            length = recordCount;
+        Proposal[] memory slicedProposal = new Proposal[](actualQuantity);
+
+        for (uint i = 0; i < actualQuantity; i++) {
+            slicedProposal[i] = _proposalList[from + i];
         }
 
-        Proposal[] memory selectedProposalList = new Proposal[](length);
-
-        for ( uint i = 0; i < length; i++ ) {
-            if (_proposalList[from + i].ipfsHash != 0) {
-                selectedProposalList[i] = _proposalList[from + i];
-                count++;
-            }
-        }
-
-        return _trim(selectedProposalList, count);
-    }
-
-    /**
-     * @notice trim unnecessary arrays.
-     *
-     * @param elements                  Proposal list.
-     * @param length                    Number of data.
-     */
-    function _trim(Proposal[] memory elements, uint length) pure internal returns(Proposal[] memory) {
-        Proposal[] memory outs = new Proposal[](length);
-
-        for ( uint i = 0; i < length; i++ ) {
-            outs[i] = elements[i];
-        }
-
-        return outs;
+        return slicedProposal;
     }
 
     /**

@@ -417,7 +417,7 @@ describe('GovernanceContract', () => {
     const startVotingDay4 = 4;
 
     const from = 1;
-    const quantity = 6;
+    const quantity = 2;
 
     beforeEach(async () => {
       await _TimeContract.setCurrentTimeIndex(1);
@@ -459,6 +459,30 @@ describe('GovernanceContract', () => {
     });
 
     context('When params is valid', async() => {
+      const from = 1;
+      const quantity = 2;
+
+      it('Should return proposal list', async () => {
+        const actual = await _GovernanceContract.connect(owner).getProposalList(from, quantity);
+
+        expect(ipfsHash2).to.equal(actual[0].ipfsHash);
+        expect(optionNumber).to.equal(actual[0].optionNumber);
+        expect(multipleVote).to.equal(actual[0].multipleVote);
+        expect(startVotingDay2).to.equal(actual[0].startVotingDay);
+        expect(endVotingDay).to.equal(actual[0].endVotingDay);
+
+        expect(ipfsHash3).to.equal(actual[1].ipfsHash);
+        expect(optionNumber).to.equal(actual[1].optionNumber);
+        expect(multipleVote).to.equal(actual[1].multipleVote);
+        expect(startVotingDay3).to.equal(actual[1].startVotingDay);
+        expect(endVotingDay).to.equal(actual[1].endVotingDay);
+      });
+    });
+
+    context('When the sum of the from and quantity values is greater than the _proposalLength value', async() => {
+      const from = 1;
+      const quantity = 10;
+
       it('Should return proposal list', async () => {
         const actual = await _GovernanceContract.connect(owner).getProposalList(from, quantity);
 
