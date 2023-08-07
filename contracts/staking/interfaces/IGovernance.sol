@@ -38,12 +38,15 @@ interface IGovernance is IFixedGovernance {
         close
     }
 
+    event IssueProposerRoleGranted(address indexed ownerAddress, address indexed authorizedAddress);
+    event IssueProposerRoleRevoked(address indexed ownerAddress, address indexed revokedAddress);
+    event TallyVotingRoleGranted(address indexed ownerAddress, address indexed authorizedAddress);
+    event TallyVotingRoleRevoked(address indexed ownerAddress, address indexed revokedAddress);
     event VotePropose(bytes32 indexed ipfsHash, address indexed voter, uint day, uint256 totalAmount, uint[] voteOptions);
     event Propose(bytes32 ipfsHash, uint optionNumber, uint256 minimumStakingAmount, bool multipleVote, uint startVotingDay, uint endVotingDay);
     event ResetAmountsForTally(bytes32 ipfsHash, uint day);
     event Tally(bytes32 ipfsHash, uint day, uint amountVotesToTally, uint finalizedProposalCurrentBatchIndex);
     event TallyComplete(bytes32 ipfsHash, uint day, uint amountVotesToTally, uint finalizedProposalCurrentBatchIndex);
-
 
     function propose(bytes32 ipfsHash, uint optionNumber, uint256 minimumStakingAmount, bool multipleVote, uint startVotingDay, uint endVotingDay) external;
     function getProposal(bytes32 ipfsHash) external view returns(Proposal memory);

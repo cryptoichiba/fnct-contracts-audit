@@ -53,8 +53,23 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      *
      * @param  authorizedAddress    Address of granted permission.
      */
-    function setupIssueProposerRole(address authorizedAddress) external onlyOwner {
+    function grantIssueProposerRole(address authorizedAddress) external onlyOwner {
+        require(authorizedAddress != address(0x0), "Governance: Address is zero address");
         _grantRole(ISSUE_PROPOSER_ROLE, authorizedAddress);
+
+        emit IssueProposerRoleGranted(msg.sender, authorizedAddress);
+    }
+
+    /**
+     * @notice Revoke permission to propose function.
+     *
+     * @param  revokedAddress       Address of revok permission.
+     */
+    function revokeIssueProposerRole(address revokedAddress) external onlyOwner {
+        require(revokedAddress != address(0x0), "Governance: Address is zero address");
+        _revokeRole(ISSUE_PROPOSER_ROLE, revokedAddress);
+
+        emit IssueProposerRoleRevoked(msg.sender, revokedAddress);
     }
 
     /**
@@ -62,8 +77,23 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      *
      * @param  authorizedAddress    Address of granted permission.
      */
-    function setupTallyVotingRole(address authorizedAddress) external onlyOwner {
+    function grantTallyVotingRole(address authorizedAddress) external onlyOwner {
+        require(authorizedAddress != address(0x0), "Governance: Address is zero address");
         _grantRole(TALLY_VOTING_ROLE, authorizedAddress);
+
+        emit TallyVotingRoleGranted(msg.sender, authorizedAddress);
+    }
+
+    /**
+     * @notice Revoke permission to tallyNumberOfVotesOnProposal function.
+     *
+     * @param  revokedAddress       Address of revok permission.
+     */
+    function revokeTallyVotingRole(address revokedAddress) external onlyOwner {
+        require(revokedAddress != address(0x0), "Governance: Address is zero address");
+        _revokeRole(ISSUE_PROPOSER_ROLE, revokedAddress);
+
+        emit TallyVotingRoleRevoked(msg.sender, revokedAddress);
     }
 
     /**

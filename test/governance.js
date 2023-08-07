@@ -47,18 +47,126 @@ describe('GovernanceContract', () => {
     await _VaultContract.connect(owner).addLock(voter2.address, BigInt(voterAmount));
     await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voterAmount));
 
-    await _GovernanceContract.connect(owner).setupIssueProposerRole(issueProposer.address);
-    await _GovernanceContract.connect(owner).setupTallyVotingRole(tallyExecuter.address);
+    await _GovernanceContract.connect(owner).grantIssueProposerRole(issueProposer.address);
+    await _GovernanceContract.connect(owner).grantTallyVotingRole(tallyExecuter.address);
   });
 
   it('Should deploy smart contract properly', async () => {
     expect(_GovernanceContract.address).not.to.equal('');
   });
 
+  describe('grantIssueProposerRole', async () => {
+    context('When params is valid', async() => {
+      it('Should emit event including ownerAddress, authorizedAddress', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).grantIssueProposerRole(
+            issueProposer.address
+          )
+        ).to.emit(
+          _GovernanceContract, 'IssueProposerRoleGranted'
+        ).withArgs(
+          owner.address,
+          issueProposer.address
+        );
+      });
+    });
+
+    context('When authorizedAddress is invalid', async() => {
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).grantIssueProposerRole(
+            zeroAddress
+          )
+        ).to.be.revertedWith("Governance: Address is zero address");
+      });
+    });
+  });
+
+  describe('grantTallyVotingRole', async () => {
+    context('When params is valid', async() => {
+      it('Should emit event including ownerAddress, authorizedAddress', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).grantTallyVotingRole(
+            tallyExecuter.address
+          )
+        ).to.emit(
+          _GovernanceContract, 'TallyVotingRoleGranted'
+        ).withArgs(
+          owner.address,
+          tallyExecuter.address
+        );
+      });
+    });
+
+    context('When authorizedAddress is invalid', async() => {
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).grantTallyVotingRole(
+            zeroAddress
+          )
+        ).to.be.revertedWith("Governance: Address is zero address");
+      });
+    });
+  });
+
+  describe('revokeIssueProposerRole', async () => {
+    context('When params is valid', async() => {
+      it('Should emit event including ownerAddress, revokedAddress', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).revokeIssueProposerRole(
+            issueProposer.address
+          )
+        ).to.emit(
+          _GovernanceContract, 'IssueProposerRoleRevoked'
+        ).withArgs(
+          owner.address,
+          issueProposer.address
+        );
+      });
+    });
+
+    context('When revokedAddress is invalid', async() => {
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).revokeIssueProposerRole(
+            zeroAddress
+          )
+        ).to.be.revertedWith("Governance: Address is zero address");
+      });
+    });
+  });
+
+  describe('revokeTallyVotingRol', async () => {
+    context('When params is valid', async() => {
+      it('Should emit event including ownerAddress, revokedAddress', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).revokeTallyVotingRole(
+            tallyExecuter.address
+          )
+        ).to.emit(
+          _GovernanceContract, 'TallyVotingRoleRevoked'
+        ).withArgs(
+          owner.address,
+          tallyExecuter.address
+        );
+      });
+    });
+
+    context('When revokedAddress is invalid', async() => {
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).revokeTallyVotingRole(
+            zeroAddress
+          )
+        ).to.be.revertedWith("Governance: Address is zero address");
+      });
+    });
+  });
+
   describe('propose', async () => {
     beforeEach(async () => {
       await _TimeContract.setCurrentTimeIndex(1);
-      await _GovernanceContract.connect(owner).setupIssueProposerRole(issueProposer.address);
+      await _GovernanceContract.connect(owner).grantIssueProposerRole(issueProposer.address);
     });
 
     context('When params is valid', async() => {
