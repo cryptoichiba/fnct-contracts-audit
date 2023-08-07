@@ -193,7 +193,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
             allVotingAmount += _tallyStatus[ipfsHash][day].votingAmounts[i];
         }
 
-        if (allVotingAmount == 0) return 0;
+        if (allBlankAmount == 0) return 0;
 
         // Calculate the ratio of blank votes to total votes
         blankVotingRate = allBlankAmount * partsPerMillion / (allVotingAmount + allBlankAmount);

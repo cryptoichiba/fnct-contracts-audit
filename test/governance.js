@@ -633,29 +633,57 @@ describe('GovernanceContract', () => {
         multipleVote, startVotingDay,
         endVotingDay
       );
-
-      await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions);
-      await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, voteOptions);
-      await _GovernanceContract.connect(voter3).vote(ipfsHashNumber, voteOptions);
-
-      await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
-        ipfsHash,
-        amountVotesToTally
-      );
-      await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
-        ipfsHash,
-        amountVotesToTally
-      );
     });
 
-    const amountVotesToTally = 2;
-    const finalizedProposalCurrentBatchIndex = 2;
-    const toralFinalizedIndex = 3;
-
     context('When params is valid', async() => {
+      beforeEach(async () => {
+        await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions);
+        await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, voteOptions);
+        await _GovernanceContract.connect(voter3).vote(ipfsHashNumber, voteOptions);
+
+        await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+          ipfsHash,
+          amountVotesToTally
+        );
+        await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+          ipfsHash,
+          amountVotesToTally
+        );
+      });
+
+      const amountVotesToTally = 2;
+      const finalizedProposalCurrentBatchIndex = 2;
+      const toralFinalizedIndex = 3;
+
       it('Should return tally status', async () => {
         const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
 
+        expect(day).to.equal(actual.day);
+        expect(true).to.equal(actual.completed);
+        expect(toralFinalizedIndex).to.equal(3);
+      });
+    });
+
+    context('When all votes were blank votes', async() => {
+      beforeEach(async () => {
+        await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, blankVoteOptions);
+        await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, blankVoteOptions);
+        await _GovernanceContract.connect(voter3).vote(ipfsHashNumber, blankVoteOptions);
+
+        await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+          ipfsHash,
+          amountVotesToTally
+        );
+      });
+
+      const amountVotesToTally = 3;
+      const toralFinalizedIndex = 3;
+      const blankVoteOptions = [];
+
+      it('Should return tally status', async () => {
+        const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
+
+        expect(BigInt("1000000")).to.equal(actual.blankVotingRate);
         expect(day).to.equal(actual.day);
         expect(true).to.equal(actual.completed);
         expect(toralFinalizedIndex).to.equal(3);
