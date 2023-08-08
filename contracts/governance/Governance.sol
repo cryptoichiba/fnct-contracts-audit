@@ -31,6 +31,18 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
     bytes32 public constant ISSUE_PROPOSER_ROLE = keccak256("ISSUE_PROPOSER_ROLE");
     bytes32 public constant TALLY_VOTING_ROLE = keccak256("TALLY_VOTING_ROLE");
     uint private partsPerMillion = 1000000;
+
+    // For minimumStakingAmount range
+    uint256 private _maxValueOfMinimumStakeAmount;
+    uint256 private _minValueOfMinimumStakeAmount;
+
+    // For voting period(endVotingDay - startVotingDay) range
+    uint private _minVotingPeriod;
+    uint private _maxVotingPeriod;
+
+    // For optionNumber maximum value
+    uint private _maxOptionNumber;
+
     uint _proposalLength;
     Proposal[] _proposalList;
 
@@ -40,12 +52,33 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param timeContract_         Address of Time contract.
      * @param vaultContract_        Address of VaultContract.
      */
-    constructor(address timeContract_, address vaultContract_) {
+    constructor(
+        address timeContract_,
+        address vaultContract_,
+        uint256 minValueOfMinimumStakeAmount_,
+        uint256 maxValueOfMinimumStakeAmount_,
+        uint minVotingPeriod_,
+        uint maxVotingPeriod_,
+        uint maxOptionNumber_
+    ) {
         require(timeContract_ != address(0x0), "Governance: TimeContract is zero address");
         require(vaultContract_ != address(0x0), "Governance: VaultContract is zero address");
 
+        require(minValueOfMinimumStakeAmount_ > 0, "Governance: minValueOfMinimumStakeAmount should be greater than 0.");
+        require(maxValueOfMinimumStakeAmount_ >= minValueOfMinimumStakeAmount_, "Governance: maxValueOfMinimumStakeAmount should be equal or less than min.");
+
+        require(minVotingPeriod_ > 0, "Governance: minVotingPeriod should be greater than 0.");
+        require(maxVotingPeriod_ >= minVotingPeriod_, "Governance: maxVotingPeriod should be equal or less than min.");
+
+        require(maxOptionNumber_ > 0, "Governance: maxOptionNumber should be greater than 0.");
+
         _timeContract = ITime(timeContract_);
         _vaultContract = IVault(vaultContract_);
+        _minValueOfMinimumStakeAmount = minValueOfMinimumStakeAmount_;
+        _maxValueOfMinimumStakeAmount = maxValueOfMinimumStakeAmount_;
+        _minVotingPeriod = minVotingPeriod_;
+        _maxVotingPeriod = maxVotingPeriod_;
+        _maxOptionNumber = maxOptionNumber_;
     }
 
     /**
@@ -97,6 +130,70 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
     }
 
     /**
+     * @notice Sets the minimumStakingAmount rate allowance range from `min` to `max`.
+     *
+     * @param  min                  minimum value of minimumStakeAmount.
+     * @param  max                  maximum value of minimumStakeAmount.
+     */
+    function setMinimumStakeAmountRange(uint min, uint max) override onlyOwner external {
+        require(min > 0, "Governance: min should be greater than 0.");
+        require(max >= min, "Governance: max should be equal or less than min.");
+        _minValueOfMinimumStakeAmount = min;
+        _maxValueOfMinimumStakeAmount = max;
+
+        emit MinimumStakeAmountRangeUpdated(min, max);
+    }
+
+    /**
+     * @notice Returns minimumStakingAmount rate allowance range.
+     */
+    function getMinimumStakeAmountRange() public view returns(uint256, uint256) {
+        return (_minValueOfMinimumStakeAmount, _maxValueOfMinimumStakeAmount);
+    }
+
+    /**
+     * @notice Sets the voting period rate allowance range from `min` to `max`.
+     * @notice Voting Period means (endVotingDay - startVotingDay).
+     *
+     * @param  min                  minimum value of voting period.
+     * @param  max                  maximum value of voting period.
+     */
+    function setVotingPeriodRange(uint min, uint max) override onlyOwner external {
+        require(min > 0, "Governance: min should be greater than 0.");
+        require(max >= min, "Governance: max should be equal or less than min.");
+        _minVotingPeriod = min;
+        _maxVotingPeriod = max;
+
+        emit VotingPeriodRangeUpdated(min, max);
+    }
+
+    /**
+     * @notice Returns voting period rate allowance range.
+     */
+    function getVotingPeriodRange() public view returns(uint, uint) {
+        return (_minVotingPeriod, _maxVotingPeriod);
+    }
+
+    /**
+     * @notice Sets the maximum allowed option number value.
+     *
+     * @param  maxNumber            maximum value of optionNumber.
+     */
+    function setMaxOptionNumber(uint maxNumber) override onlyOwner external {
+        require(maxNumber > 0, "Governance: maxNumber should be greater than 0.");
+        _maxOptionNumber = maxNumber;
+
+        emit MaxOptionNumberUpdated(maxNumber);
+    }
+
+    /**
+     * @notice Returns the maximum allowed option number value.
+     */
+    function getMaxOptionNumber() public view returns(uint) {
+        return _maxOptionNumber;
+    }
+
+    /**
      * @notice Record proposal contents on the blockchain
      * @notice
      * @notice [Example(Proposal)]
@@ -131,11 +228,34 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         uint startVotingDay,
         uint endVotingDay
     ) override onlyRole(ISSUE_PROPOSER_ROLE) external {
+        require(ipfsHash != bytes32(0), "Governance: ipfsHash is empty.");
         require(optionNumber != 0, "Governance: OptionNumber is invalid.");
-        require(startVotingDay < endVotingDay, "Governance: startVotingDay or endVotingDay is wrong");
+
+        // Prevent 0 when evenly distribute staking amount for voting amounts.
+        require(minimumStakingAmount > optionNumber, "Governance: minimumStakingAmount is less than optionNumber");
         uint today = _timeContract.getCurrentTimeIndex();
         require(today <= startVotingDay, "Governance: startVotingDay is wrong");
         require(!_validatingIpfsHash[ipfsHash], "Governance: specified ipfsHash is already registered");
+
+        // Check for minimumStakingAmount range
+        (uint minMinimumStakeAmount, uint maxMinimumStakeAmount) = getMinimumStakeAmountRange();
+        require(minMinimumStakeAmount <= minimumStakingAmount, "Governance: minimumStakingAmount should be equal or greater than min.");
+        require(minimumStakingAmount <= maxMinimumStakeAmount, "Governance: minimumStakingAmount should be equal or less than max.");
+
+        // Check for voting period range
+        require(startVotingDay < endVotingDay, "Governance: startVotingDay or endVotingDay is wrong");
+
+        uint votingPeriod = endVotingDay - startVotingDay;
+        { // scope to avoid stack too deep errors
+          (uint minValueOfVotingPeriod, uint maxValueOfVotingPeriod) = getVotingPeriodRange();
+
+          require(minValueOfVotingPeriod <= votingPeriod, "Governance: Voting period should be equal or greater than min.");
+          require(votingPeriod <= maxValueOfVotingPeriod, "Governance: Voting period should be equal or less than max.");
+        }
+
+        // Check for max optionNumber
+        uint maxNumber = getMaxOptionNumber();
+        require(optionNumber <= maxNumber, "Governance: Option number should be equal or less than max.");
 
         _proposalList.push(
             Proposal(
@@ -199,6 +319,8 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param ipfsHash              Hash value of ipfs.
      */
     function _findPropose(bytes32 ipfsHash) internal view returns(Proposal memory) {
+        require(_validatingIpfsHash[ipfsHash], "Governance: ipfs hash is wrong");
+
         Proposal memory selectedPropose;
         uint proposalIndex = _proposalHashToIndex[ipfsHash];
         selectedPropose = _proposalList[proposalIndex];
@@ -376,7 +498,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param selection             Array for option number to vote.
      */
     function vote(uint256 issue_number, uint[] calldata selection) override external {
-        require(_proposalLength >= issue_number, "Governance: Proposal issune number is wrong");
+        require(_proposalLength > issue_number, "Governance: Proposal issune number is wrong");
         Proposal memory selectedPropose = _proposalList[issue_number];
         bytes32 ipfsHash = selectedPropose.ipfsHash;
         uint[] memory votingOptions = selection;
@@ -546,6 +668,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         uint amountVotesToTally
     ) override onlyRole(TALLY_VOTING_ROLE) external {
         require(_validatingIpfsHash[ipfsHash], "Governance: ipfs hash is wrong");
+        require(amountVotesToTally > 0, "Governance: The amount votes to tally must be a number greater than 0");
 
         uint today = _timeContract.getCurrentTimeIndex();
         // Return the day to tally(day or endVotingDay).
@@ -554,6 +677,8 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         require(_tallyStatus[ipfsHash][tallyDay].completed == false, "Tally number of votes on proposal has already finished");
 
         Proposal memory selectedPropose = _findPropose(ipfsHash);
+        // Not execute tally if voting hasn't started yet
+        require(selectedPropose.startVotingDay <= today, "Governance: Proposal voting is not start");
 
         uint recordCount = _getRecordCount(ipfsHash, amountVotesToTally, tallyDay);
 

@@ -3,6 +3,13 @@ const { ethers } = require('hardhat');
 const MUMBAI_FNCT = '0xcc0A07053b7bfd69d72991Ad2e83c11f7838A9ad';
 const POLYGON_ICBT = '0x0f93119bdac9e80ca845e9a56ae027507cb24c6a';
 
+// Constants of Governance Contract
+const MIN_VALUE_OF_MINIMUM_STAKING_AMOUNT = BigInt(1 * 9 ** 18);
+const MAX_VALUE_OF_MINIMUM_STAKING_AMOUNT = BigInt(2 * 10 ** 18);
+const MIN_VOTING_PERIOD = 2;
+const MAX_VOTING_PERIOD = 200;
+const MAX_OPTION_NUMBER = 5;
+
 const getDefaultDeployer = async () => {
   const [firstAccount] = await ethers.getSigners();
   return firstAccount;
@@ -176,6 +183,11 @@ const deployGovernanceContract = async (
   _TimeContract = null,
   _FNCToken = null,
   _VaultContract = null,
+  minValueOfMinimumStakeAmount = null,
+  maxValueOfMinimumStakeAmount = null,
+  minVotingPeriod = null,
+  maxVotingPeriod = null,
+  maxOptionNumber = null,
   useMock = false,
   _deployer = null
 ) => {
@@ -183,9 +195,22 @@ const deployGovernanceContract = async (
   const TimeContract = _TimeContract || await deployTimeContract(5, useMock, deployer);
   const FNCToken = _FNCToken || await deployFNCToken(deployer);
   const VaultContract = _VaultContract || await deployVaultContract(TimeContract, FNCToken, useMock, deployer);
+  const minValueOfMinimumStakeAmount_ = minValueOfMinimumStakeAmount || MIN_VALUE_OF_MINIMUM_STAKING_AMOUNT;
+  const maxValueOfMinimumStakeAmount_ = maxValueOfMinimumStakeAmount || MAX_VALUE_OF_MINIMUM_STAKING_AMOUNT;
+  const minVotingPeriod_ = minVotingPeriod || MIN_VOTING_PERIOD;
+  const maxVotingPeriod_ = maxVotingPeriod || MAX_VOTING_PERIOD;
+  const maxOptionNumber_ = maxOptionNumber || MAX_OPTION_NUMBER;
   const contractName = useMock ? 'MockGovernanceContract' : 'GovernanceContract';
   const factory = await ethers.getContractFactory(contractName, deployer);
-  const GovernanceContract = await factory.deploy(TimeContract.address, VaultContract.address);
+  const GovernanceContract = await factory.deploy(
+    TimeContract.address,
+    VaultContract.address,
+    minValueOfMinimumStakeAmount_,
+    maxValueOfMinimumStakeAmount_,
+    minVotingPeriod_,
+    maxVotingPeriod_,
+    maxOptionNumber_
+  );
   await GovernanceContract.deployed();
 
   return GovernanceContract;

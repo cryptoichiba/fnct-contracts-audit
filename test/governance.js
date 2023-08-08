@@ -5,10 +5,17 @@ const {deployFNCToken, deployVaultContract, deployGovernanceContract} = require(
 describe('GovernanceContract', () => {
   const ipfsHash = '0xb94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9';
   const optionNumber = 4;
+  const maxOptionNumber = 5;
   const multipleVote = true;
+
   const startVotingDay = 1;
   const endVotingDay = 10;
+  const minVotingPeriod = 2;
+  const maxVotingPeriod = 200;
+
   const minimumStakingAmount = 1 * 10 ** 18;
+  const minValueOfMinimumStakeAmount = 1 * 9 ** 18;
+  const maxValueOfMinimumStakeAmount = 2 * 10 ** 18;
   const day = 1;
 
   const voteOptions = [1, 3, 4];
@@ -31,7 +38,18 @@ describe('GovernanceContract', () => {
     await _TimeContract.deployed();
 
     _VaultContract = await deployVaultContract(_TimeContract, _FNCToken, false, owner);
-    _GovernanceContract = await deployGovernanceContract(_TimeContract, _FNCToken, _VaultContract, false, owner);
+    _GovernanceContract = await deployGovernanceContract(
+      _TimeContract,
+      _FNCToken,
+      _VaultContract,
+      BigInt(minValueOfMinimumStakeAmount),
+      BigInt(maxValueOfMinimumStakeAmount),
+      minVotingPeriod,
+      maxVotingPeriod,
+      maxOptionNumber,
+      false,
+      owner
+    );
 
     await _VaultContract.setupStakingRole(owner.address);
 
@@ -47,12 +65,93 @@ describe('GovernanceContract', () => {
     await _VaultContract.connect(owner).addLock(voter2.address, BigInt(voterAmount));
     await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voterAmount));
 
+    // Sets the minimumStakeAmount rate allowance range from `min` to `max`.
+    await _GovernanceContract.connect(owner).setMinimumStakeAmountRange(
+      BigInt(minValueOfMinimumStakeAmount),
+      BigInt(maxValueOfMinimumStakeAmount)
+    );
+
+    // Sets the voting period(endVotingDay - startVotingDay) range allowance range from `min` to `max`.
+    await _GovernanceContract.connect(owner).setVotingPeriodRange(minVotingPeriod, maxVotingPeriod);
+
+    // Sets the maximum allowed option number value.
+    await _GovernanceContract.connect(owner).setMaxOptionNumber(maxOptionNumber);
     await _GovernanceContract.connect(owner).grantIssueProposerRole(issueProposer.address);
     await _GovernanceContract.connect(owner).grantTallyVotingRole(tallyExecuter.address);
   });
 
   it('Should deploy smart contract properly', async () => {
     expect(_GovernanceContract.address).not.to.equal('');
+  });
+
+  describe('setMinimumStakeAmountRange', async () => {
+    const minValueOfMinimumStakeAmount = 1 * 10 ** 18;
+    const maxValueOfMinimumStakeAmount = 2 * 10 ** 18;
+
+    context('When params is valid', async() => {
+      it('Should emit event including minValueOfMinimumStakeAmount, maxValueOfMinimumStakeAmount', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).setMinimumStakeAmountRange(
+            BigInt(minValueOfMinimumStakeAmount),
+            BigInt(maxValueOfMinimumStakeAmount)
+          )
+        ).to.emit(
+          _GovernanceContract, 'MinimumStakeAmountRangeUpdated'
+        ).withArgs(
+          BigInt(minValueOfMinimumStakeAmount),
+          BigInt(maxValueOfMinimumStakeAmount)
+        );
+      });
+    });
+
+    context('When max is less than min.', async() => {
+      const invalidMinValueOfMinimumStakeAmount = 2 * 10 ** 18;
+      const invalidMaxValueOfMinimumStakeAmount = 1 * 10 ** 18;
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).setMinimumStakeAmountRange(
+            BigInt(invalidMinValueOfMinimumStakeAmount),
+            BigInt(invalidMaxValueOfMinimumStakeAmount)
+          )
+        ).to.be.revertedWith("Governance: max should be equal or less than min.");
+      });
+    });
+
+    context('When min is less than 0.', async() => {
+      const invalidMinValueOfMinimumStakeAmount = 0;
+      const maxValueOfMinimumStakeAmount = 2 * 10 ** 18;
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).setMinimumStakeAmountRange(
+            BigInt(invalidMinValueOfMinimumStakeAmount),
+            BigInt(maxValueOfMinimumStakeAmount)
+          )
+        ).to.be.revertedWith("Governance: min should be greater than 0.");
+      });
+    });
+  });
+
+  describe('getMinimumStakeAmountRange', async () => {
+    const minValueOfMinimumStakeAmount = 10 * 10 ** 18;
+    const maxValueOfMinimumStakeAmount = 20 * 10 ** 18;
+
+    beforeEach(async () => {
+      await _GovernanceContract.connect(owner).setMinimumStakeAmountRange(
+        BigInt(minValueOfMinimumStakeAmount),
+        BigInt(maxValueOfMinimumStakeAmount)
+      );
+    });
+
+    context('When get minimum stake amount range', async() => {
+      it('min and max voting period value', async () => {
+        const actual = await _GovernanceContract.connect(voter1).getMinimumStakeAmountRange();
+
+        expect(BigInt(minValueOfMinimumStakeAmount)).to.equal(actual[0]);
+        expect(BigInt(maxValueOfMinimumStakeAmount)).to.equal(actual[1]);
+      });
+    });
   });
 
   describe('grantIssueProposerRole', async () => {
@@ -82,6 +181,72 @@ describe('GovernanceContract', () => {
     });
   });
 
+  describe('setVotingPeriodRange', async () => {
+    context('When params is valid', async() => {
+      it('Should emit event including minVotingPeriod, maxVotingPeriod', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).setVotingPeriodRange(
+            minVotingPeriod,
+            maxVotingPeriod
+          )
+        ).to.emit(
+          _GovernanceContract, 'VotingPeriodRangeUpdated'
+        ).withArgs(
+          minVotingPeriod,
+          maxVotingPeriod
+        );
+      });
+    });
+
+    context('When max is less than min.', async() => {
+      const invalidMinVotingPeriod = 200;
+      const invalidMaxVotingPeriod = 2;
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).setVotingPeriodRange(
+            invalidMinVotingPeriod,
+            invalidMaxVotingPeriod
+          )
+        ).to.be.revertedWith("Governance: max should be equal or less than min.");
+      });
+    });
+
+    context('When authorizedAddress is invalid', async() => {
+      const invalidMinVotingPeriod = 0;
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).setVotingPeriodRange(
+            invalidMinVotingPeriod,
+            maxVotingPeriod
+          )
+        ).to.be.revertedWith("Governance: min should be greater than 0.");
+      });
+    });
+  });
+
+  describe('getVotingPeriodRange', async () => {
+    const minVotingPeriod = 2;
+    const maxVotingPeriod = 200;
+
+    beforeEach(async () => {
+      await _GovernanceContract.connect(owner).setVotingPeriodRange(
+        minVotingPeriod,
+        maxVotingPeriod
+      );
+    });
+
+    context('When get voting period range', async() => {
+      it('Should return min and max voting period value', async () => {
+        const actual = await _GovernanceContract.connect(voter1).getVotingPeriodRange();
+
+        expect(minVotingPeriod).to.equal(actual[0]);
+        expect(maxVotingPeriod).to.equal(actual[1]);
+      });
+    });
+  });
+
   describe('grantTallyVotingRole', async () => {
     context('When params is valid', async() => {
       it('Should emit event including ownerAddress, authorizedAddress', async () => {
@@ -98,6 +263,20 @@ describe('GovernanceContract', () => {
       });
     });
 
+    context('When params is invalid', async() => {
+      const invalidMinVotingPeriod = 100;
+      const invalidMaxVotingPeriod = 1;
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).setVotingPeriodRange(
+            invalidMinVotingPeriod,
+            invalidMaxVotingPeriod,
+          )
+        ).to.be.revertedWith("Governance: max should be equal or less than min.");
+      });
+    });
+
     context('When authorizedAddress is invalid', async() => {
       it('Fail: Governance', async () => {
         await expect(
@@ -105,6 +284,52 @@ describe('GovernanceContract', () => {
             zeroAddress
           )
         ).to.be.revertedWith("Governance: Address is zero address");
+      });
+    });
+  });
+
+  describe('setMaxOptionNumber', async () => {
+    context('When params is valid', async() => {
+      it('Should emit event including maxOptionNumber', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).setMaxOptionNumber(
+            maxOptionNumber
+          )
+        ).to.emit(
+          _GovernanceContract, 'MaxOptionNumberUpdated'
+        ).withArgs(
+          maxOptionNumber
+        );
+      });
+    });
+
+    context('When max is less than min.', async() => {
+      const invalidMaxOptionNumber = 0;
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).setMaxOptionNumber(
+            invalidMaxOptionNumber
+          )
+        ).to.be.revertedWith("Governance: maxNumber should be greater than 0.");
+      });
+    });
+  });
+
+  describe('getMaxOptionNumber', async () => {
+    const maxOptionNumber = 5;
+
+    beforeEach(async () => {
+      await _GovernanceContract.connect(owner).setMaxOptionNumber(
+        maxOptionNumber
+      );
+    });
+
+    context('When get Max Option number', async() => {
+      it('Should return max option number', async () => {
+        const actual = await _GovernanceContract.connect(voter1).getMaxOptionNumber();
+
+        expect(maxOptionNumber).to.equal(actual);
       });
     });
   });
@@ -190,6 +415,23 @@ describe('GovernanceContract', () => {
           startVotingDay,
           endVotingDay
         );
+      });
+    });
+
+    context('When ipfsHash is empty', async() => {
+      const ipfsHash = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            optionNumber,
+            BigInt(minimumStakingAmount),
+            multipleVote,
+            startVotingDay,
+            endVotingDay
+          )
+        ).to.be.revertedWith("Governance: ipfsHash is empty.");
       });
     });
 
@@ -283,6 +525,91 @@ describe('GovernanceContract', () => {
             endVotingDay
           )
         ).to.be.revertedWith(`AccessControl: account 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 is missing role 0x8c0b481d3b4e913a4153d609c74102ff37f3729681b837d6c90495f5420fed52`);
+      });
+    });
+
+    context('When minimumStakingAmount is less than min.', async() => {
+      const invalidMinimumStakingAmount = 1 * 8 ** 18;
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            optionNumber,
+            BigInt(invalidMinimumStakingAmount),
+            multipleVote,
+            startVotingDay,
+            endVotingDay
+          )
+        ).to.be.revertedWith('Governance: minimumStakingAmount should be equal or greater than min.');
+      });
+    });
+
+    context('When minimumStakingAmount is greater than max.', async() => {
+      const invalidMinimumStakingAmount = 1 * 11 ** 18;
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            optionNumber,
+            BigInt(invalidMinimumStakingAmount),
+            multipleVote,
+            startVotingDay,
+            endVotingDay
+          )
+        ).to.be.revertedWith('Governance: minimumStakingAmount should be equal or less than max.');
+      });
+    });
+
+    context('When votine period is less than min.', async() => {
+      const invalidStartVotingDay = 1;
+      const invalidEndVotingDay = 2;
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            optionNumber,
+            BigInt(minimumStakingAmount),
+            multipleVote,
+            invalidStartVotingDay,
+            invalidEndVotingDay
+          )
+        ).to.be.revertedWith('Governance: Voting period should be equal or greater than min.');
+      });
+    });
+
+    context('When option number is greater than max.', async() => {
+      const invalidStartVotingDay = 1;
+      const invalidEndVotingDay = 202;
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            optionNumber,
+            BigInt(minimumStakingAmount),
+            multipleVote,
+            invalidStartVotingDay,
+            invalidEndVotingDay
+          )
+        ).to.be.revertedWith('Governance: Voting period should be equal or less than max.');
+      });
+    });
+
+    context('When option number is greater than maxOptionNumber.', async() => {
+      const invalidOptionNumber = 10;
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            invalidOptionNumber,
+            BigInt(minimumStakingAmount),
+            multipleVote,
+            startVotingDay,
+            endVotingDay
+          )
+        ).to.be.revertedWith('Governance: Option number should be equal or less than max.');
       });
     });
   });
@@ -625,7 +952,7 @@ describe('GovernanceContract', () => {
     });
 
     context('When ipfsHash is invalid', async() => {
-      const invalidIpfsHashNumber = 2;
+      const invalidIpfsHashNumber = 1;
 
       it('Fail: Governance', async () => {
         await expect(
@@ -789,15 +1116,43 @@ describe('GovernanceContract', () => {
     });
 
     context('When params is invalid', async() => {
-      const invalidIpfsHash = '0xb94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde8';
+      context('When ipfsHash is invalid', async() => {
+        const invalidIpfsHash = '0xb94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde8';
+        it('Should return voting history', async () => {
+          await expect(
+            _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              invalidIpfsHash,
+              amountVotesToTally
+            )
+          ).to.be.revertedWith("Governance: ipfs hash is wrong");
+        });
+      });
 
-      it('Should return voting history', async () => {
-        await expect(
-          _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
-            invalidIpfsHash,
-            amountVotesToTally
-          )
-        ).to.be.revertedWith("Governance: ipfs hash is wrong");
+      context('When voting has not started yet', async() => {
+        beforeEach(async () => {
+          await _TimeContract.setCurrentTimeIndex(0);
+        });
+
+        it('Fail: Governance', async () => {
+          await expect(
+            _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              ipfsHash,
+              amountVotesToTally
+            )
+          ).to.be.revertedWith("Governance: Proposal voting is not start");
+        });
+      });
+
+      context('When The amount votes to tally is 0 or less', async() => {
+        const invalidAmountVotesToTally = 0;
+        it('Fail: Governance', async () => {
+          await expect(
+            _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              ipfsHash,
+              invalidAmountVotesToTally
+            )
+          ).to.be.revertedWith("Governance: The amount votes to tally must be a number greater than 0");
+        });
       });
     });
   });
