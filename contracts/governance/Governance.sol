@@ -313,12 +313,9 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      *
      * @param votingOptions          The voting options(selection).
      */
-    function _checkVotingOptions(uint[] memory votingOptions, uint optionNumber) internal pure returns(bool) {
+    function _checkVotingOptions(uint[] memory votingOptions) internal pure returns(bool) {
       uint length = votingOptions.length;
       bool result = false;
-
-      // Invalid if the number of voting options is greater than the number of propose options.
-      if (length > optionNumber) return false;
 
       if (length == 0) return true;
 
@@ -368,13 +365,11 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         uint voteOptionsLength = votingOptions.length;
         uint today = _timeContract.getCurrentTimeIndex();
         uint256 totalStakingAmount = getVotingPowerOfDay(today, msg.sender);
-        uint proposeOptionNumber = selectedPropose.optionNumber;
 
         // Users(staking users) can vote between startVotingDay and endVotingDay
         require(selectedPropose.startVotingDay <= today, "Governance: Proposal voting is not start");
         require(today < selectedPropose.endVotingDay, "Governance: Proposal voting is finished");
-        require(_checkVotingOptions(selection, proposeOptionNumber), "Governance: voting Options is invalid");
-
+        require(_checkVotingOptions(selection), "Governance: voting Options is invalid");
         // Only users with minimum stake or higher can vote.
         require(totalStakingAmount >= selectedPropose.minimumStakingAmount, "Governance: Insufficient minimum staking amount");
 
