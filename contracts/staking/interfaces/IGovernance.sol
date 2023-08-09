@@ -61,6 +61,6 @@ interface IGovernance is IFixedGovernance {
     function getProposalList(uint from, uint quantity) external view returns(Proposal[] memory);
     function vote(uint256 issue_number, uint[] calldata selection) external;
     function getLatestVoteOfUserOnProposal(bytes32 ipfsHash, address voterAddress) external view returns (VotingHistory memory);
-    function tallyNumberOfVotesOnProposal(bytes32 ipfsHash, uint256 amountVotesToTally) external;
+    function tallyNumberOfVotesOnProposal(bytes32 ipfsHash, uint256 amountVotesToTally, uint dayOfTally) external;
     function getTallyStatus(bytes32 ipfsHash, uint day) external view returns (TallyStatus memory);
 }

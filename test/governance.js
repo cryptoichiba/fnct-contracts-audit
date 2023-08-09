@@ -17,6 +17,7 @@ describe('GovernanceContract', () => {
   const minValueOfMinimumStakeAmount = 1 * 9 ** 18;
   const maxValueOfMinimumStakeAmount = 2 * 10 ** 18;
   const day = 1;
+  const dayOfTally = 1;
 
   const voteOptions = [1, 3, 4];
   const zeroAddress = '0x0000000000000000000000000000000000000000';
@@ -1054,6 +1055,8 @@ describe('GovernanceContract', () => {
       await _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions);
       await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, voteOptions);
       await _GovernanceContract.connect(voter3).vote(ipfsHashNumber, voteOptions);
+
+      await _TimeContract.setCurrentTimeIndex(2);
     });
 
     const amountVotesToTally = 2;
@@ -1064,7 +1067,8 @@ describe('GovernanceContract', () => {
         await expect(
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             ipfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           )
         ).to.emit(
           _GovernanceContract, 'ResetAmountsForTally'
@@ -1078,7 +1082,8 @@ describe('GovernanceContract', () => {
         await expect(
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             ipfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           )
         ).to.emit(
           _GovernanceContract, 'Tally'
@@ -1096,13 +1101,15 @@ describe('GovernanceContract', () => {
 
         await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
           ipfsHash,
-          amountVotesToTally
+          amountVotesToTally,
+          dayOfTally
         );
 
         await expect(
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             ipfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           )
         ).to.emit(
           _GovernanceContract, 'TallyComplete'
@@ -1122,22 +1129,37 @@ describe('GovernanceContract', () => {
           await expect(
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               invalidIpfsHash,
-              amountVotesToTally
+              amountVotesToTally,
+              dayOfTally
             )
           ).to.be.revertedWith("Governance: ipfs hash is wrong");
         });
       });
 
       context('When voting has not started yet', async() => {
+        const startVotingDay = 3;
+        const ipfsHash = '0xb94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde7'
+
         beforeEach(async () => {
-          await _TimeContract.setCurrentTimeIndex(0);
+          await _TimeContract.setCurrentTimeIndex(1);
+          await _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            optionNumber,
+            BigInt(minimumStakingAmount),
+            multipleVote,
+            startVotingDay,
+            endVotingDay
+          );
+
+          await _TimeContract.setCurrentTimeIndex(2);
         });
 
         it('Fail: Governance', async () => {
           await expect(
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               ipfsHash,
-              amountVotesToTally
+              amountVotesToTally,
+              dayOfTally
             )
           ).to.be.revertedWith("Governance: Proposal voting is not start");
         });
@@ -1149,9 +1171,27 @@ describe('GovernanceContract', () => {
           await expect(
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               ipfsHash,
-              invalidAmountVotesToTally
+              invalidAmountVotesToTally,
+              dayOfTally
             )
           ).to.be.revertedWith("Governance: The amount votes to tally must be a number greater than 0");
+        });
+      });
+
+      context('When tallyNumberOfVotesOnProposal is executed on the current day', async() => {
+        const dayOfTally = 2;
+        beforeEach(async () => {
+          await _TimeContract.setCurrentTimeIndex(2);
+        });
+
+        it('Fail: Governance', async () => {
+          await expect(
+            _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
+              ipfsHash,
+              amountVotesToTally,
+              dayOfTally
+            )
+          ).to.be.revertedWith("Governance: Can only tally past dates.");
         });
       });
     });
@@ -1167,6 +1207,8 @@ describe('GovernanceContract', () => {
         multipleVote, startVotingDay,
         endVotingDay
       );
+
+      await _TimeContract.setCurrentTimeIndex(2);
     });
 
     context('When params is valid', async() => {
@@ -1177,11 +1219,13 @@ describe('GovernanceContract', () => {
 
         await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
           ipfsHash,
-          amountVotesToTally
+          amountVotesToTally,
+          dayOfTally
         );
         await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
           ipfsHash,
-          amountVotesToTally
+          amountVotesToTally,
+          dayOfTally
         );
       });
 
@@ -1206,7 +1250,8 @@ describe('GovernanceContract', () => {
 
         await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
           ipfsHash,
-          amountVotesToTally
+          amountVotesToTally,
+          dayOfTally
         );
       });
 
@@ -1369,16 +1414,21 @@ describe('GovernanceContract', () => {
           await _FNCToken.connect(voter1).approve(_VaultContract.address, BigInt(voterAmount));
           await _VaultContract.connect(owner).addLock(voter1.address, BigInt(voterAmount));
           await _VaultContract.connect(owner).unlock(voter2.address, BigInt(voterAmount));
+
+          // day 183
+          await _TimeContract.setCurrentTimeIndex(183);
         });
 
         const day = 182;
+        const dayOfTally = 182;
         const amountVotesToTally = 3;
         const index = 3;
 
         it('should return proposal status for 182 days of Propose 1', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             ipfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
 
@@ -1396,7 +1446,8 @@ describe('GovernanceContract', () => {
         it('should return proposal status for 182 days of Propose 2', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             secondIpfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
             secondIpfsHash,
@@ -1417,7 +1468,8 @@ describe('GovernanceContract', () => {
         it('should return proposal status for 182 days of Propose 3', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             thirdIpfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
             thirdIpfsHash,
@@ -1458,16 +1510,21 @@ describe('GovernanceContract', () => {
           await _FNCToken.connect(voter2).approve(_VaultContract.address, BigInt(voterAmount));
           await _VaultContract.connect(owner).addLock(voter2.address, BigInt(voterAmount));
           await _GovernanceContract.connect(voter2).vote(ipfsHashNumber, voteOptions2);
+
+          // day 185
+          await _TimeContract.setCurrentTimeIndex(185);
         });
 
         const day = 184;
+        const dayOfTally = 184;
         const amountVotesToTally = 3;
         const index = 3;
 
         it('should return proposal status for 184 days of Propose 1', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             ipfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
           expect(true).to.equal(actual.completed);
@@ -1484,7 +1541,8 @@ describe('GovernanceContract', () => {
         it('should return proposal status for 184 days of Propose 2', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             secondIpfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
             secondIpfsHash,
@@ -1505,7 +1563,8 @@ describe('GovernanceContract', () => {
         it('should return proposal status for 184 days of Propose 3', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             thirdIpfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
             thirdIpfsHash,
@@ -1550,17 +1609,22 @@ describe('GovernanceContract', () => {
           // day 185
           await _TimeContract.setCurrentTimeIndex(185);
           await _VaultContract.connect(owner).unlock(voter3.address, BigInt(voterAmount));
+
+          // day 186
+          await _TimeContract.setCurrentTimeIndex(186);
         });
 
         context('when executing tallyNumberOfVotesOnProposal from 0 to 1', async() => {
           const day = 185;
+          const dayOfTally = 185;
           const amountVotesToTally = 2;
           const index = 2;
 
           it('should return proposal status for 185 days from 0 to 1', async () => {
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               ipfsHash,
-              amountVotesToTally
+              amountVotesToTally,
+              dayOfTally
             );
             const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
 
@@ -1578,7 +1642,8 @@ describe('GovernanceContract', () => {
           it('should return proposal status for 185 days of Propose 2', async () => {
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               secondIpfsHash,
-              amountVotesToTally
+              amountVotesToTally,
+              dayOfTally
             );
             const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
               secondIpfsHash,
@@ -1599,7 +1664,8 @@ describe('GovernanceContract', () => {
           it('should return proposal status for 185 days of Propose 3', async () => {
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               thirdIpfsHash,
-              amountVotesToTally
+              amountVotesToTally,
+              dayOfTally
             );
             const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
               thirdIpfsHash,
@@ -1620,6 +1686,7 @@ describe('GovernanceContract', () => {
 
         context('when executing tallyNumberOfVotesOnProposal from 1 to 2', async() => {
           const day = 185;
+          const dayOfTally = 185;
           const firstAmountVotesToTally = 2;
           const firstFinalizedProposalCurrentBatchIndex = 2;
           const secondAmountVotesToTally = 1;
@@ -1629,12 +1696,14 @@ describe('GovernanceContract', () => {
           it('should return proposal status for 185 days from 1 to 2 of Propose 1', async () => {
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               ipfsHash,
-              firstAmountVotesToTally
+              firstAmountVotesToTally,
+              dayOfTally
             );
 
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               ipfsHash,
-              secondAmountVotesToTally
+              secondAmountVotesToTally,
+              dayOfTally
             );
             const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
             expect(true).to.equal(actual.completed);
@@ -1651,12 +1720,14 @@ describe('GovernanceContract', () => {
           it('should return proposal status for 185 days from 1 to 2 of Propose 2', async () => {
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               secondIpfsHash,
-              firstAmountVotesToTally
+              firstAmountVotesToTally,
+              dayOfTally
             );
 
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               secondIpfsHash,
-              secondAmountVotesToTally
+              secondAmountVotesToTally,
+              dayOfTally
             );
 
             const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
@@ -1678,12 +1749,14 @@ describe('GovernanceContract', () => {
           it('should return proposal status for 185 days from 1 to 2 of Propose 3', async () => {
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               thirdIpfsHash,
-              firstAmountVotesToTally
+              firstAmountVotesToTally,
+              dayOfTally
             );
 
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               thirdIpfsHash,
-              secondAmountVotesToTally
+              secondAmountVotesToTally,
+              dayOfTally
             );
 
             const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
@@ -1706,7 +1779,8 @@ describe('GovernanceContract', () => {
             await expect(
               _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
                 ipfsHash,
-                firstAmountVotesToTally
+                firstAmountVotesToTally,
+                dayOfTally
               )
             ).to.emit(
               _GovernanceContract, 'ResetAmountsForTally'
@@ -1720,7 +1794,8 @@ describe('GovernanceContract', () => {
             await expect(
               _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
                 ipfsHash,
-                firstAmountVotesToTally
+                firstAmountVotesToTally,
+                dayOfTally
               )
             ).to.emit(
               _GovernanceContract, 'Tally'
@@ -1735,13 +1810,15 @@ describe('GovernanceContract', () => {
           it('Should emit event including ipfsHash, amountVotesToTally', async () => {
             await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               ipfsHash,
-              firstAmountVotesToTally
+              firstAmountVotesToTally,
+              dayOfTally
             );
 
             await expect(
               _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
                 ipfsHash,
-                secondAmountVotesToTally
+                secondAmountVotesToTally,
+                dayOfTally
               )
             ).to.emit(
               _GovernanceContract, 'TallyComplete'
@@ -1797,16 +1874,21 @@ describe('GovernanceContract', () => {
           await _TimeContract.setCurrentTimeIndex(188);
           await _FNCToken.connect(voter3).approve(_VaultContract.address, BigInt(voterAmount));
           await _VaultContract.connect(owner).addLock(voter3.address, BigInt(voter3DailyStakingAmount));
+
+          // day 189
+          await _TimeContract.setCurrentTimeIndex(189);
         });
 
         const day = 188;
+        const dayOfTally = 188;
         const amountVotesToTally = 3;
         const index = 3;
 
         it('should return proposal status for 188 days of Propose 1', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             ipfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
           expect(true).to.equal(actual.completed);
@@ -1823,7 +1905,8 @@ describe('GovernanceContract', () => {
         it('should return proposal status for 188 days of Propose 2', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             secondIpfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
 
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
@@ -1845,7 +1928,8 @@ describe('GovernanceContract', () => {
         it('should return proposal status for 188 days of Propose 3', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             thirdIpfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
             thirdIpfsHash,
@@ -1915,16 +1999,21 @@ describe('GovernanceContract', () => {
 
           // day 190
           await _TimeContract.setCurrentTimeIndex(190);
+
+          // day 191
+          await _TimeContract.setCurrentTimeIndex(191);
         });
 
         const day = 190;
+        const dayOfTally = 190;
         const amountVotesToTally = 3;
         const index = 3;
 
         it('should return proposal status for 190 days of Propose 1', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             ipfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
 
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
@@ -1943,7 +2032,8 @@ describe('GovernanceContract', () => {
         it('should return proposal status for 188 days of Propose 2', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             secondIpfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
 
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
@@ -1965,7 +2055,8 @@ describe('GovernanceContract', () => {
         it('should return proposal status for 188 days of Propose 3', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             thirdIpfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
             thirdIpfsHash,
@@ -1987,7 +2078,8 @@ describe('GovernanceContract', () => {
           await expect(
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               ipfsHash,
-              amountVotesToTally
+              amountVotesToTally,
+              dayOfTally
             )
           ).to.emit(
             _GovernanceContract, 'ResetAmountsForTally'
@@ -2004,7 +2096,8 @@ describe('GovernanceContract', () => {
           await expect(
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               ipfsHash,
-              firstAmountVotesToTally
+              firstAmountVotesToTally,
+              dayOfTally
             )
           ).to.emit(
             _GovernanceContract, 'Tally'
@@ -2023,14 +2116,16 @@ describe('GovernanceContract', () => {
           const secondFinalizedProposalCurrentBatchIndex = 3;
 
           await _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
-              ipfsHash,
-              firstAmountVotesToTally
+            ipfsHash,
+            firstAmountVotesToTally,
+            dayOfTally
           );
 
           await expect(
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               ipfsHash,
-              secondAmountVotesToTally
+              secondAmountVotesToTally,
+              dayOfTally
             )
           ).to.emit(
             _GovernanceContract, 'TallyComplete'
@@ -2097,16 +2192,21 @@ describe('GovernanceContract', () => {
 
           // day 191
           await _TimeContract.setCurrentTimeIndex(191);
+
+          // day 192
+          await _TimeContract.setCurrentTimeIndex(192);
         });
 
         const day = 190;
+        const dayOfTally = 191;
         const amountVotesToTally = 3;
         const index = 3;
 
         it('should return proposal status for 191 days', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             ipfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
 
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
@@ -2125,7 +2225,8 @@ describe('GovernanceContract', () => {
         it('should return proposal status for 190 days of Propose 2', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             secondIpfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
 
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
@@ -2147,7 +2248,8 @@ describe('GovernanceContract', () => {
         it('should return proposal status for 190 days of Propose 3', async () => {
           _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
             thirdIpfsHash,
-            amountVotesToTally
+            amountVotesToTally,
+            dayOfTally
           );
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(
             thirdIpfsHash,
@@ -2169,7 +2271,8 @@ describe('GovernanceContract', () => {
           it('Fail: Governance', async () => {
             _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
               ipfsHash,
-              amountVotesToTally
+              amountVotesToTally,
+              dayOfTally
             );
 
             const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
@@ -2177,7 +2280,8 @@ describe('GovernanceContract', () => {
             await expect(
               _GovernanceContract.connect(tallyExecuter).tallyNumberOfVotesOnProposal(
                 ipfsHash,
-                amountVotesToTally
+                amountVotesToTally,
+                dayOfTally
               )
             ).to.be.revertedWith("Tally number of votes on proposal has already finished");
           });

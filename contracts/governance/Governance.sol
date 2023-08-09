@@ -662,17 +662,21 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      *
      * @param ipfsHash              Hash value of ipfs.
      * @param amountVotesToTally    Amount votes to tally.
+     * @param dayOfTally            Day of tally.
      */
     function tallyNumberOfVotesOnProposal(
         bytes32 ipfsHash,
-        uint amountVotesToTally
+        uint amountVotesToTally,
+        uint dayOfTally
     ) override onlyRole(TALLY_VOTING_ROLE) external {
         require(_validatingIpfsHash[ipfsHash], "Governance: ipfs hash is wrong");
         require(amountVotesToTally > 0, "Governance: The amount votes to tally must be a number greater than 0");
 
         uint today = _timeContract.getCurrentTimeIndex();
+        require(today > dayOfTally, "Governance: Can only tally past dates.");
+
         // Return the day to tally(day or endVotingDay).
-        uint tallyDay = _getDay(ipfsHash, today);
+        uint tallyDay = _getDay(ipfsHash, dayOfTally);
         // Tally is not executed once all users have been tallied.
         require(_tallyStatus[ipfsHash][tallyDay].completed == false, "Tally number of votes on proposal has already finished");
 
@@ -750,7 +754,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
             _tallyStatus[ipfsHash][tallyDay].completed = true;
             emit TallyComplete(
               ipfsHash,
-              today,
+              tallyDay,
               amountVotesToTally,
               finalizedProposalCurrentBatchIndex[ipfsHash][tallyDay]
             );
@@ -761,7 +765,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
 
         emit Tally(
           ipfsHash,
-          today,
+          tallyDay,
           amountVotesToTally,
           finalizedProposalCurrentBatchIndex[ipfsHash][tallyDay]
         );
