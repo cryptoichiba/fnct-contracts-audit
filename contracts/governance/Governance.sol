@@ -510,6 +510,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         uint256 totalStakingAmount = getVotingPowerOfDay(today, msg.sender);
         uint proposeOptionNumber = selectedPropose.optionNumber;
 
+        require(today > 0, "Governance: You cannot vote on Time Contract launch day");
         // Users(staking users) can vote between startVotingDay and endVotingDay
         require(selectedPropose.startVotingDay <= today, "Governance: Proposal voting is not start");
         require(today < selectedPropose.endVotingDay, "Governance: Proposal voting is finished");

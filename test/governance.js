@@ -986,8 +986,21 @@ describe('GovernanceContract', () => {
     });
 
     context('When proposal voting is not start', async() => {
+      const ipfsHash = '0xb94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde8';
+      const startVotingDay = 2;
+      const ipfsHashNumber = 1;
+
       beforeEach(async () => {
-        await _TimeContract.setCurrentTimeIndex(0);
+        await _TimeContract.setCurrentTimeIndex(1);
+
+        await _GovernanceContract.connect(issueProposer).propose(
+          ipfsHash,
+          optionNumber,
+          BigInt(minimumStakingAmount),
+          multipleVote,
+          startVotingDay,
+          endVotingDay
+        );
       })
 
       it('Fail: Governance', async () => {
@@ -1037,6 +1050,18 @@ describe('GovernanceContract', () => {
         await expect(
           _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions4)
         ).to.be.revertedWith("Governance: voting Options is invalid");
+      });
+    });
+
+    context('Governance: TimeContract is launch day', async() => {
+      beforeEach(async () => {
+        await _TimeContract.setCurrentTimeIndex(0);
+      })
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions)
+        ).to.be.revertedWith("Governance: You cannot vote on Time Contract launch day");
       });
     });
   });
