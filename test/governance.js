@@ -890,6 +890,16 @@ describe('GovernanceContract', () => {
         ).to.be.revertedWith("Governance: 'from' is greater than number of proposal");
       });
     });
+
+    context('When from params has the same value as _proposalLength ', async() => {
+      const invalidFrom = 4;
+
+      it('Fail: Governance', async () => {
+        await expect(
+          _GovernanceContract.connect(owner).getProposalList(invalidFrom, quantity)
+        ).to.be.revertedWith("Governance: 'from' is greater than number of proposal");
+      });
+    });
   });
 
   describe('getVotingPowerOfDay', async () => {
