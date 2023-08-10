@@ -6,8 +6,6 @@ import "../staking/interfaces/IVault.sol";
 import "../staking/interfaces/IGovernance.sol";
 import "../staking/utils/UnrenounceableOwnable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-// todo: remove debug tool
-import "hardhat/console.sol";
 
 contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable {
     ITime private immutable _timeContract;
