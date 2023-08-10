@@ -279,7 +279,6 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
 
         _proposalLength = _proposalList.length;
         _validatingIpfsHash[ipfsHash] = true;
-        // added index number to extract specific proposal in _findPropose method.
         _proposalHashToIndex[ipfsHash] = _currentIndexOfProposal;
         _currentIndexOfProposal++;
 
@@ -298,7 +297,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      *
      * @param ipfsHash              Hash value of ipfs.
      */
-    function getProposal(bytes32 ipfsHash) override external view returns (Proposal memory){
+    function getProposal(bytes32 ipfsHash) public view returns (Proposal memory){
         require(_validatingIpfsHash[ipfsHash], "Governance: ipfs hash is wrong");
         return _proposal[ipfsHash];
     }
@@ -314,21 +313,6 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
     }
 
     /**
-     * @notice find Proposal
-     *
-     * @param ipfsHash              Hash value of ipfs.
-     */
-    function _findPropose(bytes32 ipfsHash) internal view returns(Proposal memory) {
-        require(_validatingIpfsHash[ipfsHash], "Governance: ipfs hash is wrong");
-
-        Proposal memory selectedPropose;
-        uint proposalIndex = _proposalHashToIndex[ipfsHash];
-        selectedPropose = _proposalList[proposalIndex];
-
-        return selectedPropose;
-    }
-
-    /**
      * @notice calculate rate of blank voting
      * @notice Calculate parts per million of blank votes
      *
@@ -336,7 +320,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param day                   Number of day.
      */
     function _calcBlankVotingRate(bytes32 ipfsHash, uint day) internal view returns(uint) {
-        Proposal memory selectedPropose = _findPropose(ipfsHash);
+        Proposal memory selectedPropose = getProposal(ipfsHash);
         uint256 allBlankAmount = _tallyStatus[ipfsHash][day].blankVotingAmount;
         uint256 allVotingAmount;
         uint blankVotingRate;
@@ -362,7 +346,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
     function getProposalStatus(bytes32 ipfsHash, uint day) override external view returns (ProposalStatus memory) {
         require(_validatingIpfsHash[ipfsHash], "Governance: ipfs hash is wrong");
 
-        Proposal memory selectedPropose = _findPropose(ipfsHash);
+        Proposal memory selectedPropose = getProposal(ipfsHash);
         ProposalStatus memory proposalStatus;
         Status status;
 
@@ -557,7 +541,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param day                   day of execute tally.
      */
     function _getDay(bytes32 ipfsHash, uint day) internal view returns(uint) {
-        Proposal memory selectedPropose = _findPropose(ipfsHash);
+        Proposal memory selectedPropose = getProposal(ipfsHash);
         uint endVotingDay = selectedPropose.endVotingDay;
 
         if (day < endVotingDay){
@@ -681,7 +665,8 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         // Tally is not executed once all users have been tallied.
         require(_tallyStatus[ipfsHash][tallyDay].completed == false, "Tally number of votes on proposal has already finished");
 
-        Proposal memory selectedPropose = _findPropose(ipfsHash);
+        Proposal memory selectedPropose = getProposal(ipfsHash);
+
         // Not execute tally if voting hasn't started yet
         require(selectedPropose.startVotingDay <= today, "Governance: Proposal voting is not start");
 
