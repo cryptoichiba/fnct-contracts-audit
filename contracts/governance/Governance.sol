@@ -12,38 +12,35 @@ import "hardhat/console.sol";
 contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable {
     ITime private immutable _timeContract;
     IVault private immutable _vaultContract;
-    // variable to ensure _proposalHashToIndex is incremented each time a proposal is added
-    uint private _currentIndexOfProposal;
 
-    mapping(bytes32 => Proposal) _proposal;
     // variable to record the index number of each proposal
-    mapping(bytes32 => uint) _proposalHashToIndex;
+    mapping(bytes32 => uint256) _proposalHashToIndex;
     mapping(bytes32 => address[]) _proposalVoters;
     mapping(bytes32 => bool) _validatingIpfsHash;
     // variable that records the number of unique voters for each proposal
-    mapping(bytes32 => uint) _proposalVoterNumver;
+    mapping(bytes32 => uint256) _proposalVoterNumber;
     // variable that records a voter's latest voting history
     mapping(bytes32 => mapping(address => VotingHistory)) _latestVoteOfUserOnProposal;
-    mapping(bytes32 => mapping(uint => TallyStatus)) _tallyStatus;
+    mapping(bytes32 => mapping(uint256 => TallyStatus)) _tallyStatus;
     // variable that records the current index of the next-to-be-processed voter
-    mapping(bytes32 => mapping(uint => uint256)) finalizedProposalCurrentBatchIndex;
+    mapping(bytes32 => mapping(uint256 => uint256)) finalizedProposalCurrentBatchIndex;
 
     bytes32 public constant ISSUE_PROPOSER_ROLE = keccak256("ISSUE_PROPOSER_ROLE");
     bytes32 public constant TALLY_VOTING_ROLE = keccak256("TALLY_VOTING_ROLE");
-    uint private partsPerMillion = 1000000;
+    uint256 private constant partsPerMillion = 1000000;
 
     // For minimumStakingAmount range
     uint256 private _maxValueOfMinimumStakeAmount;
     uint256 private _minValueOfMinimumStakeAmount;
 
     // For voting period(endVotingDay - startVotingDay) range
-    uint private _minVotingPeriod;
-    uint private _maxVotingPeriod;
+    uint256 private _minVotingPeriod;
+    uint256 private _maxVotingPeriod;
 
     // For optionNumber maximum value
-    uint private _maxOptionNumber;
+    uint256 private _maxOptionNumber;
 
-    uint _proposalLength;
+    uint256 _proposalLength;
     Proposal[] _proposalList;
 
     /**
@@ -57,9 +54,9 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         address vaultContract_,
         uint256 minValueOfMinimumStakeAmount_,
         uint256 maxValueOfMinimumStakeAmount_,
-        uint minVotingPeriod_,
-        uint maxVotingPeriod_,
-        uint maxOptionNumber_
+        uint256 minVotingPeriod_,
+        uint256 maxVotingPeriod_,
+        uint256 maxOptionNumber_
     ) {
         require(timeContract_ != address(0x0), "Governance: TimeContract is zero address");
         require(vaultContract_ != address(0x0), "Governance: VaultContract is zero address");
@@ -135,7 +132,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param  min                  minimum value of minimumStakeAmount.
      * @param  max                  maximum value of minimumStakeAmount.
      */
-    function setMinimumStakeAmountRange(uint min, uint max) override onlyOwner external {
+    function setMinimumStakeAmountRange(uint256 min, uint256 max) override onlyOwner external {
         require(min > 0, "Governance: min should be greater than 0.");
         require(max >= min, "Governance: max should be equal or less than min.");
         _minValueOfMinimumStakeAmount = min;
@@ -158,7 +155,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param  min                  minimum value of voting period.
      * @param  max                  maximum value of voting period.
      */
-    function setVotingPeriodRange(uint min, uint max) override onlyOwner external {
+    function setVotingPeriodRange(uint256 min, uint256 max) override onlyOwner external {
         require(min > 0, "Governance: min should be greater than 0.");
         require(max >= min, "Governance: max should be equal or less than min.");
         _minVotingPeriod = min;
@@ -170,7 +167,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
     /**
      * @notice Returns voting period rate allowance range.
      */
-    function getVotingPeriodRange() public view returns(uint, uint) {
+    function getVotingPeriodRange() public view returns(uint256, uint256) {
         return (_minVotingPeriod, _maxVotingPeriod);
     }
 
@@ -179,7 +176,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      *
      * @param  maxNumber            maximum value of optionNumber.
      */
-    function setMaxOptionNumber(uint maxNumber) override onlyOwner external {
+    function setMaxOptionNumber(uint256 maxNumber) override onlyOwner external {
         require(maxNumber > 0, "Governance: maxNumber should be greater than 0.");
         _maxOptionNumber = maxNumber;
 
@@ -189,7 +186,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
     /**
      * @notice Returns the maximum allowed option number value.
      */
-    function getMaxOptionNumber() public view returns(uint) {
+    function getMaxOptionNumber() public view returns(uint256) {
         return _maxOptionNumber;
     }
 
@@ -222,39 +219,39 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      */
     function propose(
         bytes32 ipfsHash,
-        uint optionNumber,
+        uint256 optionNumber,
         uint256 minimumStakingAmount,
         bool multipleVote,
-        uint startVotingDay,
-        uint endVotingDay
+        uint256 startVotingDay,
+        uint256 endVotingDay
     ) override onlyRole(ISSUE_PROPOSER_ROLE) external {
         require(ipfsHash != bytes32(0), "Governance: ipfsHash is empty.");
         require(optionNumber != 0, "Governance: OptionNumber is invalid.");
 
         // Prevent 0 when evenly distribute staking amount for voting amounts.
         require(minimumStakingAmount > optionNumber, "Governance: minimumStakingAmount is less than optionNumber");
-        uint today = _timeContract.getCurrentTimeIndex();
+        uint256 today = _timeContract.getCurrentTimeIndex();
         require(today <= startVotingDay, "Governance: startVotingDay is wrong");
         require(!_validatingIpfsHash[ipfsHash], "Governance: specified ipfsHash is already registered");
 
         // Check for minimumStakingAmount range
-        (uint minMinimumStakeAmount, uint maxMinimumStakeAmount) = getMinimumStakeAmountRange();
+        (uint256 minMinimumStakeAmount, uint256 maxMinimumStakeAmount) = getMinimumStakeAmountRange();
         require(minMinimumStakeAmount <= minimumStakingAmount, "Governance: minimumStakingAmount should be equal or greater than min.");
         require(minimumStakingAmount <= maxMinimumStakeAmount, "Governance: minimumStakingAmount should be equal or less than max.");
 
         // Check for voting period range
         require(startVotingDay < endVotingDay, "Governance: startVotingDay or endVotingDay is wrong");
 
-        uint votingPeriod = endVotingDay - startVotingDay;
+        uint256 votingPeriod = endVotingDay - startVotingDay;
         { // scope to avoid stack too deep errors
-          (uint minValueOfVotingPeriod, uint maxValueOfVotingPeriod) = getVotingPeriodRange();
+          (uint256 minValueOfVotingPeriod, uint256 maxValueOfVotingPeriod) = getVotingPeriodRange();
 
           require(minValueOfVotingPeriod <= votingPeriod, "Governance: Voting period should be equal or greater than min.");
           require(votingPeriod <= maxValueOfVotingPeriod, "Governance: Voting period should be equal or less than max.");
         }
 
         // Check for max optionNumber
-        uint maxNumber = getMaxOptionNumber();
+        uint256 maxNumber = getMaxOptionNumber();
         require(optionNumber <= maxNumber, "Governance: Option number should be equal or less than max.");
 
         _proposalList.push(
@@ -268,19 +265,10 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
             )
         );
 
-        _proposal[ipfsHash] = Proposal(
-            ipfsHash,
-            optionNumber,
-            minimumStakingAmount,
-            multipleVote,
-            startVotingDay,
-            endVotingDay
-        );
-
         _proposalLength = _proposalList.length;
         _validatingIpfsHash[ipfsHash] = true;
-        _proposalHashToIndex[ipfsHash] = _currentIndexOfProposal;
-        _currentIndexOfProposal++;
+        // added index number to extract specific proposal in getProposal method.
+        _proposalHashToIndex[ipfsHash] = _proposalList.length - 1;
 
         emit Propose(
             ipfsHash,
@@ -299,7 +287,12 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      */
     function getProposal(bytes32 ipfsHash) public view returns (Proposal memory){
         require(_validatingIpfsHash[ipfsHash], "Governance: ipfs hash is wrong");
-        return _proposal[ipfsHash];
+
+        Proposal memory selectedPropose;
+        uint256 proposalIndex = _proposalHashToIndex[ipfsHash];
+        selectedPropose = _proposalList[proposalIndex];
+
+        return selectedPropose;
     }
 
     /**
@@ -307,7 +300,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      *
      * @param ipfsHash              Hash value of ipfs.
      */
-    function getProposalNumber(bytes32 ipfsHash) override external view returns (uint){
+    function getProposalNumber(bytes32 ipfsHash) override external view returns (uint256){
         require(_validatingIpfsHash[ipfsHash], "Governance: ipfs hash is wrong");
         return _proposalHashToIndex[ipfsHash];
     }
@@ -317,15 +310,15 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @notice Calculate parts per million of blank votes
      *
      * @param ipfsHash              Hash value of ipfs.
-     * @param day                   Number of day.
+     * @param day                   Number of days.
      */
-    function _calcBlankVotingRate(bytes32 ipfsHash, uint day) internal view returns(uint) {
+    function _calcBlankVotingRate(bytes32 ipfsHash, uint256 day) internal view returns(uint256) {
         Proposal memory selectedPropose = getProposal(ipfsHash);
         uint256 allBlankAmount = _tallyStatus[ipfsHash][day].blankVotingAmount;
         uint256 allVotingAmount;
-        uint blankVotingRate;
+        uint256 blankVotingRate;
 
-        for ( uint i = 0; i < selectedPropose.optionNumber; i++ ) {
+        for ( uint256 i = 0; i < selectedPropose.optionNumber; i++ ) {
             allVotingAmount += _tallyStatus[ipfsHash][day].votingAmounts[i];
         }
 
@@ -341,26 +334,23 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @notice Gets status of proposal.
      *
      * @param ipfsHash              Hash value of ipfs.
-     * @param day                   Number of day.
+     * @param day                   Number of days.
      */
-    function getProposalStatus(bytes32 ipfsHash, uint day) override external view returns (ProposalStatus memory) {
+    function getProposalStatus(bytes32 ipfsHash, uint256 day) override external view returns (Status) {
         require(_validatingIpfsHash[ipfsHash], "Governance: ipfs hash is wrong");
 
         Proposal memory selectedPropose = getProposal(ipfsHash);
-        ProposalStatus memory proposalStatus;
         Status status;
 
         if (selectedPropose.endVotingDay < day) {
-            status = Status.close;
+            status = Status.CLOSE;
         } else if (day < selectedPropose.startVotingDay) {
-            status = Status.before;
+            status = Status.BEFORE;
         } else {
-            status = Status.ongoing;
+            status = Status.ONGOING;
         }
 
-        proposalStatus.status = Status(status);
-
-        return proposalStatus;
+        return status;
     }
 
     /**
@@ -369,9 +359,9 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param from                  Number of index for data.
      * @param quantity              Number of data.
      */
-    function getProposalList(uint from, uint quantity) override external view returns(Proposal[] memory) {
-        require(from < _proposalLength, "Governance: 'from' is greater than number of proposal");
-        uint actualQuantity = quantity;
+    function getProposalList(uint256 from, uint256 quantity) override external view returns(Proposal[] memory) {
+        require(from < _proposalLength, "Governance: 'from' is greater than number of proposals");
+        uint256 actualQuantity = quantity;
 
         if (from + quantity > _proposalLength) {
             actualQuantity = _proposalLength - from;
@@ -379,7 +369,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
 
         Proposal[] memory slicedProposal = new Proposal[](actualQuantity);
 
-        for (uint i = 0; i < actualQuantity; i++) {
+        for (uint256 i = 0; i < actualQuantity; i++) {
             slicedProposal[i] = _proposalList[from + i];
         }
 
@@ -398,10 +388,10 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
     /**
      * @notice Gets staking amount for specified date.
      *
-     * @param day                   Number of day.
+     * @param day                   Number of days.
      * @param voterAddress          Address of voter.
      */
-    function getVotingPowerOfDay(uint day, address voterAddress) public view returns(uint256) {
+    function getVotingPowerOfDay(uint256 day, address voterAddress) public view returns(uint256) {
         return _vaultContract.calcLockOfDay(day, voterAddress);
     }
 
@@ -412,8 +402,8 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      *
      * @param votingOptions          The voting options(selection).
      */
-    function _checkVotingOptions(uint[] memory votingOptions, uint optionNumber) internal pure returns(bool) {
-      uint length = votingOptions.length;
+    function _checkVotingOptions(uint256[] memory votingOptions, uint256 optionNumber) internal pure returns(bool) {
+      uint256 length = votingOptions.length;
       bool result = false;
 
       // Invalid if the number of voting options is greater than the number of propose options.
@@ -421,7 +411,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
 
       if (length == 0) return true;
 
-      for ( uint i = 0; i < length; i++ ) {
+      for ( uint256 i = 0; i < length; i++ ) {
           if (votingOptions[i] <= 0) break;
 
           if (i == length - 1) {
@@ -439,9 +429,9 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param totalStakingAmount    Amount of Staking.
      * @param voteOptions           Options of voting.
      */
-    function _calcVotingAmountPerOption(uint256 totalStakingAmount, uint[] memory voteOptions) internal pure returns(uint256) {
+    function _calcVotingAmountPerOption(uint256 totalStakingAmount, uint256[] memory voteOptions) internal pure returns(uint256) {
         if (voteOptions.length == 0) return 0;
-        uint length = voteOptions.length;
+        uint256 length = voteOptions.length;
         uint256 votingAmountPerOption = totalStakingAmount / length;
         return votingAmountPerOption;
     }
@@ -452,14 +442,14 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      *
      * @param voteOptions           Options of voting.
      */
-    function _validatingVoteOptions(uint[] memory voteOptions) internal pure returns(bool) {
+    function _validatingVoteOptions(uint256[] memory voteOptions) internal pure returns(bool) {
       bool result = true;
-      uint length = voteOptions.length;
+      uint256 length = voteOptions.length;
 
       // If voteOptions is less than or equal to 1, return
       if (length < 2) return result;
 
-      for(uint i = 0; i < length - 1; i++) {
+      for(uint256 i = 0; i < length - 1; i++) {
           if (voteOptions[i] >= voteOptions[i + 1]) {
               result = false;
           }
@@ -481,18 +471,18 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param issue_number          Proposal number.
      * @param selection             Array for option number to vote.
      */
-    function vote(uint256 issue_number, uint[] calldata selection) override external {
-        require(_proposalLength > issue_number, "Governance: Proposal issune number is wrong");
+    function vote(uint256 issue_number, uint256[] calldata selection) override external {
+        require(_proposalLength > issue_number, "Governance: Proposal issue number is wrong");
         Proposal memory selectedPropose = _proposalList[issue_number];
         bytes32 ipfsHash = selectedPropose.ipfsHash;
-        uint[] memory votingOptions = selection;
+        uint256[] memory votingOptions = selection;
 
         require(_validatingVoteOptions(votingOptions), "Governance: Voting options must be ascending and unique");
 
-        uint voteOptionsLength = votingOptions.length;
-        uint today = _timeContract.getCurrentTimeIndex();
+        uint256 voteOptionsLength = votingOptions.length;
+        uint256 today = _timeContract.getCurrentTimeIndex();
         uint256 totalStakingAmount = getVotingPowerOfDay(today, msg.sender);
-        uint proposeOptionNumber = selectedPropose.optionNumber;
+        uint256 proposeOptionNumber = selectedPropose.optionNumber;
 
         require(today > 0, "Governance: You cannot vote on Time Contract launch day");
         // Users(staking users) can vote between startVotingDay and endVotingDay
@@ -505,15 +495,15 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
 
         // If multipleVote is false, user cannot vote for multiple options.
         if ( !selectedPropose.multipleVote ) {
-            require (voteOptionsLength <= 1, "Governance: No Single votes.");
+            require (voteOptionsLength <= 1, "Governance: Only single or blank votes.");
         }
 
         // Users who vote for the first time have their address recorded in _proposalVoters.
-        // And _proposalVoterNumver is incremented to calculate the number of unique users per proposal.
+        // And _proposalVoterNumber is incremented to calculate the number of unique users per proposal.
         // second votes not counted.
         if (_latestVoteOfUserOnProposal[ipfsHash][msg.sender].day == 0) {
             _proposalVoters[ipfsHash].push(msg.sender);
-            _proposalVoterNumver[ipfsHash]++;
+            _proposalVoterNumber[ipfsHash]++;
         }
 
         // Vote method only records the most recent vote history for tally(tallyNumberOfVotesOnProposal).
@@ -523,7 +513,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
             votingOptions
         );
 
-        emit VotePropose(
+        emit VotedOnProposal(
             ipfsHash,
             msg.sender,
             today,
@@ -540,9 +530,9 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param ipfsHash              Hash value of ipfs.
      * @param day                   day of execute tally.
      */
-    function _getDay(bytes32 ipfsHash, uint day) internal view returns(uint) {
+    function _getDay(bytes32 ipfsHash, uint256 day) internal view returns(uint256) {
         Proposal memory selectedPropose = getProposal(ipfsHash);
-        uint endVotingDay = selectedPropose.endVotingDay;
+        uint256 endVotingDay = selectedPropose.endVotingDay;
 
         if (day < endVotingDay){
           return day;
@@ -559,10 +549,10 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param quantity              Amount Votes To Tally.
      * @param day                   Day of execute tally.
      */
-    function _getRecordCount(bytes32 ipfsHash, uint quantity, uint day) internal view returns(uint) {
-        uint recordCount = quantity;
-        uint index = finalizedProposalCurrentBatchIndex[ipfsHash][day];
-        uint unfinalizedVotersCount = _proposalVoterNumver[ipfsHash] - index;
+    function _getRecordCount(bytes32 ipfsHash, uint256 quantity, uint256 day) internal view returns(uint256) {
+        uint256 recordCount = quantity;
+        uint256 index = finalizedProposalCurrentBatchIndex[ipfsHash][day];
+        uint256 unfinalizedVotersCount = _proposalVoterNumber[ipfsHash] - index;
 
         if ( quantity > unfinalizedVotersCount ) {
             recordCount = unfinalizedVotersCount;
@@ -582,12 +572,14 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      */
     function _calcVotingAmounts(
         bytes32 ipfsHash,
-        uint day,
-        uint[] memory voteOptions,
+        uint256 day,
+        uint256[] memory voteOptions,
         uint256 votingAmountPerOption
     ) internal {
-        for ( uint i = 0; i < voteOptions.length; i++ ) {
-            uint index = voteOptions[i] - 1;
+        uint256 length = voteOptions.length;
+
+        for ( uint256 i = 0; i < length; i++ ) {
+            uint256 index = voteOptions[i] - 1;
             _tallyStatus[ipfsHash][day].votingAmounts[index] += votingAmountPerOption;
         }
     }
@@ -599,9 +591,9 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param day                   Day of execute tally.
      * @param blankVotingAmount     Amount of staking for blank voting.
      */
-    function _calcBlankVotingAmount(
+    function _increaseBlankVotingAmount(
         bytes32 ipfsHash,
-        uint day,
+        uint256 day,
         uint256 blankVotingAmount
     ) internal {
         _tallyStatus[ipfsHash][day].blankVotingAmount += blankVotingAmount;
@@ -617,10 +609,10 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      */
     function _resetToVotingAmounts(
         bytes32 ipfsHash,
-        uint day,
-        uint optionNumber
+        uint256 day,
+        uint256 optionNumber
     ) internal {
-        for ( uint i = 0; i < optionNumber; i++ ) {
+        for ( uint256 i = 0; i < optionNumber; i++ ) {
             _tallyStatus[ipfsHash][day].votingAmounts.push(0);
         }
 
@@ -651,17 +643,17 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      */
     function tallyNumberOfVotesOnProposal(
         bytes32 ipfsHash,
-        uint amountVotesToTally,
-        uint dayOfTally
+        uint256 amountVotesToTally,
+        uint256 dayOfTally
     ) override onlyRole(TALLY_VOTING_ROLE) external {
         require(_validatingIpfsHash[ipfsHash], "Governance: ipfs hash is wrong");
         require(amountVotesToTally > 0, "Governance: The amount votes to tally must be a number greater than 0");
 
-        uint today = _timeContract.getCurrentTimeIndex();
+        uint256 today = _timeContract.getCurrentTimeIndex();
         require(today > dayOfTally, "Governance: Can only tally past dates.");
 
         // Return the day to tally(day or endVotingDay).
-        uint tallyDay = _getDay(ipfsHash, dayOfTally);
+        uint256 tallyDay = _getDay(ipfsHash, dayOfTally);
         // Tally is not executed once all users have been tallied.
         require(_tallyStatus[ipfsHash][tallyDay].completed == false, "Tally number of votes on proposal has already finished");
 
@@ -670,7 +662,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         // Not execute tally if voting hasn't started yet
         require(selectedPropose.startVotingDay <= today, "Governance: Proposal voting is not start");
 
-        uint recordCount = _getRecordCount(ipfsHash, amountVotesToTally, tallyDay);
+        uint256 recordCount = _getRecordCount(ipfsHash, amountVotesToTally, tallyDay);
 
         // When tally is executed for the first time, we will initially set the amount of options to 0.
         // finalizedProposalCurrentBatchIndex is the index of the user whose tally has been completed.
@@ -682,8 +674,8 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
             );
         }
 
-        for ( uint i = 0; i < recordCount; i++ ) {
-            uint index = finalizedProposalCurrentBatchIndex[ipfsHash][tallyDay] + i;
+        for ( uint256 i = 0; i < recordCount; i++ ) {
+            uint256 index = finalizedProposalCurrentBatchIndex[ipfsHash][tallyDay] + i;
             address voterAddress = _proposalVoters[ipfsHash][index];
             // Get the staking amount at the time of tally.
             uint256 stakingAmount = getVotingPowerOfDay(tallyDay, voterAddress);
@@ -693,14 +685,14 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
             if (stakingAmount < selectedPropose.minimumStakingAmount) continue;
 
             VotingHistory memory votingHistory = _latestVoteOfUserOnProposal[ipfsHash][voterAddress];
-            uint[] memory voteOptions = votingHistory.voteOptions;
+            uint256[] memory voteOptions = votingHistory.voteOptions;
             uint256 stakingAmountPerOption = _calcVotingAmountPerOption(
                 stakingAmount,
                 voteOptions
             );
 
             // If there are voted options, calculate the number of votes with _calcVotingAmounts,
-            // otherwise calculate the number of blank votes with _calcBlankVotingAmount
+            // otherwise calculate the number of blank votes with _increaseBlankVotingAmount
             if (voteOptions.length > 0) {
                 _calcVotingAmounts(
                     ipfsHash,
@@ -720,7 +712,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
                 //     User B(100 FNCT*): Select []
                 //     User C(100 FNCT*): Select []
                 //   50% of the total votes are blank votes, so the proposal is invalid.
-                _calcBlankVotingAmount(
+                _increaseBlankVotingAmount(
                     ipfsHash,
                     tallyDay,
                     stakingAmount
@@ -730,14 +722,16 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
 
         finalizedProposalCurrentBatchIndex[ipfsHash][tallyDay] += recordCount;
 
-        _tallyStatus[ipfsHash][tallyDay].blankVotingRate = _calcBlankVotingRate(
-            ipfsHash,
-            tallyDay
-        );
-
-        // If _proposalVoterNumver and finalizedProposalCurrentBatchIndex are equal, consider tally is completed.
-        if (finalizedProposalCurrentBatchIndex[ipfsHash][tallyDay] == _proposalVoterNumver[ipfsHash]) {
+        // If _proposalVoterNumber and finalizedProposalCurrentBatchIndex are equal, consider tally is completed.
+        if (finalizedProposalCurrentBatchIndex[ipfsHash][tallyDay] == _proposalVoterNumber[ipfsHash]) {
             _tallyStatus[ipfsHash][tallyDay].completed = true;
+
+            // _calcBlankVotingRate is only calculated once a tally has been completed.
+            _tallyStatus[ipfsHash][tallyDay].blankVotingRate = _calcBlankVotingRate(
+                ipfsHash,
+                tallyDay
+            );
+
             emit TallyComplete(
               ipfsHash,
               tallyDay,
@@ -747,7 +741,6 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         }
 
         _tallyStatus[ipfsHash][tallyDay].day = tallyDay;
-        _tallyStatus[ipfsHash][tallyDay].tallyIndex = finalizedProposalCurrentBatchIndex[ipfsHash][tallyDay];
 
         emit Tally(
           ipfsHash,
@@ -763,9 +756,9 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param ipfsHash              Hash value of ipfs.
      * @param day                   day of execute tally.
      */
-    function getTallyStatus(bytes32 ipfsHash, uint day) override external view returns (TallyStatus memory) {
+    function getTallyStatus(bytes32 ipfsHash, uint256 day) override external view returns (TallyStatus memory) {
         require(_validatingIpfsHash[ipfsHash], "Governance: ipfs hash is wrong");
-        uint dayOfStatus = _getDay(ipfsHash, day);
+        uint256 dayOfStatus = _getDay(ipfsHash, day);
         return _tallyStatus[ipfsHash][dayOfStatus];
     }
 

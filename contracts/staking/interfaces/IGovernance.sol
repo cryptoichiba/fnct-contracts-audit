@@ -6,17 +6,17 @@ import "../fixed_interfaces/IFixedGovernance.sol";
 interface IGovernance is IFixedGovernance {
     struct Proposal {
         bytes32 ipfsHash;
-        uint optionNumber;
+        uint256 optionNumber;
         uint256 minimumStakingAmount;
         bool multipleVote;
-        uint startVotingDay;
-        uint endVotingDay;
+        uint256 startVotingDay;
+        uint256 endVotingDay;
     }
 
     struct VotingHistory {
-        uint day;
+        uint256 day;
         address voterAddress;
-        uint[] voteOptions;
+        uint256[] voteOptions;
     }
 
     struct ProposalStatus {
@@ -25,41 +25,40 @@ interface IGovernance is IFixedGovernance {
 
     struct TallyStatus {
         bool completed;
-        uint day;
-        uint tallyIndex;
+        uint256 day;
         uint256[] votingAmounts;
         uint256 blankVotingAmount;
-        uint blankVotingRate;
+        uint256 blankVotingRate;
     }
 
     enum Status {
-        before,
-        ongoing,
-        close
+        BEFORE,
+        ONGOING,
+        CLOSE
     }
 
     event IssueProposerRoleGranted(address indexed ownerAddress, address indexed authorizedAddress);
     event IssueProposerRoleRevoked(address indexed ownerAddress, address indexed revokedAddress);
     event TallyVotingRoleGranted(address indexed ownerAddress, address indexed authorizedAddress);
     event TallyVotingRoleRevoked(address indexed ownerAddress, address indexed revokedAddress);
-    event MinimumStakeAmountRangeUpdated(uint min, uint max);
-    event VotingPeriodRangeUpdated(uint min, uint max);
-    event MaxOptionNumberUpdated(uint maxNumber);
-    event VotePropose(bytes32 indexed ipfsHash, address indexed voter, uint day, uint256 totalAmount, uint[] voteOptions);
-    event Propose(bytes32 ipfsHash, uint optionNumber, uint256 minimumStakingAmount, bool multipleVote, uint startVotingDay, uint endVotingDay);
-    event ResetAmountsForTally(bytes32 ipfsHash, uint day);
-    event Tally(bytes32 ipfsHash, uint day, uint amountVotesToTally, uint finalizedProposalCurrentBatchIndex);
-    event TallyComplete(bytes32 ipfsHash, uint day, uint amountVotesToTally, uint finalizedProposalCurrentBatchIndex);
+    event MinimumStakeAmountRangeUpdated(uint256 min, uint256 max);
+    event VotingPeriodRangeUpdated(uint256 min, uint256 max);
+    event MaxOptionNumberUpdated(uint256 maxNumber);
+    event VotedOnProposal(bytes32 indexed ipfsHash, address indexed voter, uint256 day, uint256 totalAmount, uint256[] voteOptions);
+    event Propose(bytes32 ipfsHash, uint256 optionNumber, uint256 minimumStakingAmount, bool multipleVote, uint256 startVotingDay, uint256 endVotingDay);
+    event ResetAmountsForTally(bytes32 ipfsHash, uint256 day);
+    event Tally(bytes32 ipfsHash, uint256 day, uint256 amountVotesToTally, uint256 finalizedProposalCurrentBatchIndex);
+    event TallyComplete(bytes32 ipfsHash, uint256 day, uint256 amountVotesToTally, uint256 finalizedProposalCurrentBatchIndex);
 
-    function setMinimumStakeAmountRange(uint min, uint max) external;
-    function setVotingPeriodRange(uint min, uint max) external;
-    function setMaxOptionNumber(uint maxNumber) external;
-    function propose(bytes32 ipfsHash, uint optionNumber, uint256 minimumStakingAmount, bool multipleVote, uint startVotingDay, uint endVotingDay) external;
-    function getProposalNumber(bytes32 ipfsHash) external view returns(uint);
-    function getProposalStatus(bytes32 ipfsHash, uint day) external view returns(ProposalStatus memory);
-    function getProposalList(uint from, uint quantity) external view returns(Proposal[] memory);
-    function vote(uint256 issue_number, uint[] calldata selection) external;
+    function setMinimumStakeAmountRange(uint256 min, uint256 max) external;
+    function setVotingPeriodRange(uint256 min, uint256 max) external;
+    function setMaxOptionNumber(uint256 maxNumber) external;
+    function propose(bytes32 ipfsHash, uint256 optionNumber, uint256 minimumStakingAmount, bool multipleVote, uint256 startVotingDay, uint256 endVotingDay) external;
+    function getProposalNumber(bytes32 ipfsHash) external view returns(uint256);
+    function getProposalStatus(bytes32 ipfsHash, uint256 day) external view returns(Status);
+    function getProposalList(uint256 from, uint256 quantity) external view returns(Proposal[] memory);
+    function vote(uint256 issue_number, uint256[] calldata selection) external;
     function getLatestVoteOfUserOnProposal(bytes32 ipfsHash, address voterAddress) external view returns (VotingHistory memory);
     function tallyNumberOfVotesOnProposal(bytes32 ipfsHash, uint256 amountVotesToTally, uint dayOfTally) external;
-    function getTallyStatus(bytes32 ipfsHash, uint day) external view returns (TallyStatus memory);
+    function getTallyStatus(bytes32 ipfsHash, uint256 day) external view returns (TallyStatus memory);
 }

@@ -722,7 +722,7 @@ describe('GovernanceContract', () => {
         it('Should return proposal status', async () => {
           const actual = await _GovernanceContract.connect(voter1).getProposalStatus(ipfsHash, day);
 
-          expect(0).to.equal(actual.status);
+          expect(0).to.equal(actual);
         });
       });
 
@@ -744,7 +744,7 @@ describe('GovernanceContract', () => {
         it('Should return proposal status', async () => {
           const actual = await _GovernanceContract.connect(voter1).getProposalStatus(ipfsHash, day);
 
-          expect(1).to.equal(actual.status);
+          expect(1).to.equal(actual);
         });
       });
 
@@ -766,7 +766,7 @@ describe('GovernanceContract', () => {
         it('Should return proposal status', async () => {
           const actual = await _GovernanceContract.connect(voter1).getProposalStatus(ipfsHash, day);
 
-          expect(2).to.equal(actual.status);
+          expect(2).to.equal(actual);
         });
       });
     });
@@ -887,7 +887,7 @@ describe('GovernanceContract', () => {
       it('Fail: Governance', async () => {
         await expect(
           _GovernanceContract.connect(owner).getProposalList(invalidFrom, quantity)
-        ).to.be.revertedWith("Governance: 'from' is greater than number of proposal");
+        ).to.be.revertedWith("Governance: 'from' is greater than number of proposals");
       });
     });
 
@@ -897,7 +897,7 @@ describe('GovernanceContract', () => {
       it('Fail: Governance', async () => {
         await expect(
           _GovernanceContract.connect(owner).getProposalList(invalidFrom, quantity)
-        ).to.be.revertedWith("Governance: 'from' is greater than number of proposal");
+        ).to.be.revertedWith("Governance: 'from' is greater than number of proposals");
       });
     });
   });
@@ -937,7 +937,7 @@ describe('GovernanceContract', () => {
         await expect(
           _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions)
         ).to.emit(
-          _GovernanceContract, 'VotePropose'
+          _GovernanceContract, 'VotedOnProposal'
         ).withArgs(
           ipfsHash, voter1.address, day, BigInt(voterAmount), voteOptions
         );
@@ -955,7 +955,7 @@ describe('GovernanceContract', () => {
         await expect(
           _GovernanceContract.connect(voter1).vote(ipfsHashNumber, secondVoteOptions)
         ).to.emit(
-          _GovernanceContract, 'VotePropose'
+          _GovernanceContract, 'VotedOnProposal'
         ).withArgs(
           ipfsHash, voter1.address, day, BigInt(voterAmount), secondVoteOptions
         );
@@ -968,7 +968,7 @@ describe('GovernanceContract', () => {
       it('Fail: Governance', async () => {
         await expect(
           _GovernanceContract.connect(voter1).vote(invalidIpfsHashNumber, voteOptions)
-        ).to.be.revertedWith("Governance: Proposal issune number is wrong");
+        ).to.be.revertedWith("Governance: Proposal issue number is wrong");
       });
     });
 
@@ -991,7 +991,7 @@ describe('GovernanceContract', () => {
       it('Fail: Governance', async () => {
         await expect(
           _GovernanceContract.connect(voter1).vote(ipfsHashNumber, voteOptions)
-        ).to.be.revertedWith("Governance: No Single votes.");
+        ).to.be.revertedWith("Governance: Only single or blank votes.");
       });
     });
 
@@ -1469,7 +1469,6 @@ describe('GovernanceContract', () => {
 
           expect(true).to.equal(actual.completed);
           expect(day).to.equal(actual.day);
-          expect(3).to.equal(actual.tallyIndex);
           expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("500000000000000000")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[2]);
@@ -1491,7 +1490,6 @@ describe('GovernanceContract', () => {
 
           expect(true).to.equal(actual.completed);
           expect(day).to.equal(actual.day);
-          expect(3).to.equal(actual.tallyIndex);
           expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[2]);
@@ -1513,7 +1511,6 @@ describe('GovernanceContract', () => {
 
           expect(true).to.equal(actual.completed);
           expect(day).to.equal(actual.day);
-          expect(3).to.equal(actual.tallyIndex);
           expect(BigInt("1000000000000000000")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("0")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -1564,7 +1561,6 @@ describe('GovernanceContract', () => {
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
           expect(true).to.equal(actual.completed);
           expect(day).to.equal(actual.day);
-          expect(index).to.equal(actual.tallyIndex);
           expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("1166666666666666666")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -1586,7 +1582,6 @@ describe('GovernanceContract', () => {
 
           expect(true).to.equal(actual.completed);
           expect(day).to.equal(actual.day);
-          expect(3).to.equal(actual.tallyIndex);
           expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[2]);
@@ -1608,7 +1603,6 @@ describe('GovernanceContract', () => {
 
           expect(true).to.equal(actual.completed);
           expect(day).to.equal(actual.day);
-          expect(3).to.equal(actual.tallyIndex);
           expect(BigInt("1000000000000000000")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("2000000000000000000")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -1665,7 +1659,6 @@ describe('GovernanceContract', () => {
 
             expect(false).to.equal(actual.completed);
             expect(day).to.equal(actual.day);
-            expect(index).to.equal(actual.tallyIndex);
             expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[0]);
             expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[1]);
             expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -1687,7 +1680,6 @@ describe('GovernanceContract', () => {
 
             expect(false).to.equal(actual.completed);
             expect(day).to.equal(actual.day);
-            expect(index).to.equal(actual.tallyIndex);
             expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[0]);
             expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[1]);
             expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -1709,7 +1701,6 @@ describe('GovernanceContract', () => {
 
             expect(false).to.equal(actual.completed);
             expect(day).to.equal(actual.day);
-            expect(index).to.equal(actual.tallyIndex);
             expect(BigInt("1000000000000000000")).to.equal(actual.votingAmounts[0]);
             expect(BigInt("1000000000000000000")).to.equal(actual.votingAmounts[1]);
             expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -1743,7 +1734,6 @@ describe('GovernanceContract', () => {
             const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
             expect(true).to.equal(actual.completed);
             expect(day).to.equal(actual.day);
-            expect(index).to.equal(actual.tallyIndex);
             expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[0]);
             expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[1]);
             expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -1772,7 +1762,6 @@ describe('GovernanceContract', () => {
 
             expect(true).to.equal(actual.completed);
             expect(day).to.equal(actual.day);
-            expect(index).to.equal(actual.tallyIndex);
             expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[0]);
             expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[1]);
             expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -1801,7 +1790,6 @@ describe('GovernanceContract', () => {
 
             expect(true).to.equal(actual.completed);
             expect(day).to.equal(actual.day);
-            expect(index).to.equal(actual.tallyIndex);
             expect(BigInt("1000000000000000000")).to.equal(actual.votingAmounts[0]);
             expect(BigInt("1000000000000000000")).to.equal(actual.votingAmounts[1]);
             expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -1928,7 +1916,6 @@ describe('GovernanceContract', () => {
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
           expect(true).to.equal(actual.completed);
           expect(day).to.equal(actual.day);
-          expect(index).to.equal(actual.tallyIndex);
           expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("666666666666666666")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -1951,7 +1938,6 @@ describe('GovernanceContract', () => {
 
           expect(true).to.equal(actual.completed);
           expect(day).to.equal(actual.day);
-          expect(index).to.equal(actual.tallyIndex);
           expect(BigInt("599999999999999999")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("266666666666666666")).to.equal(actual.votingAmounts[2]);
@@ -1973,7 +1959,6 @@ describe('GovernanceContract', () => {
 
           expect(true).to.equal(actual.completed);
           expect(185).to.equal(actual.day);
-          expect(index).to.equal(actual.tallyIndex);
           expect(BigInt("1000000000000000000")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("1000000000000000000")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -2055,7 +2040,6 @@ describe('GovernanceContract', () => {
 
           expect(true).to.equal(actual.completed);
           expect(day).to.equal(actual.day);
-          expect(index).to.equal(actual.tallyIndex);
           expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -2078,7 +2062,6 @@ describe('GovernanceContract', () => {
 
           expect(true).to.equal(actual.completed);
           expect(188).to.equal(actual.day);
-          expect(index).to.equal(actual.tallyIndex);
           expect(BigInt("599999999999999999")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("266666666666666666")).to.equal(actual.votingAmounts[2]);
@@ -2100,7 +2083,6 @@ describe('GovernanceContract', () => {
 
           expect(true).to.equal(actual.completed);
           expect(185).to.equal(actual.day);
-          expect(index).to.equal(actual.tallyIndex);
           expect(BigInt("1000000000000000000")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("1000000000000000000")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
@@ -2247,7 +2229,6 @@ describe('GovernanceContract', () => {
           const actual = await _GovernanceContract.connect(voter1).getTallyStatus(ipfsHash, day);
           expect(true).to.equal(actual.completed);
           expect(day).to.equal(actual.day);
-          expect(index).to.equal(actual.tallyIndex);
 
           expect(BigInt("333333333333333333")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[1]);
@@ -2271,7 +2252,6 @@ describe('GovernanceContract', () => {
 
           expect(true).to.equal(actual.completed);
           expect(188).to.equal(actual.day);
-          expect(index).to.equal(actual.tallyIndex);
           expect(BigInt("599999999999999999")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("833333333333333333")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("266666666666666666")).to.equal(actual.votingAmounts[2]);
@@ -2293,7 +2273,6 @@ describe('GovernanceContract', () => {
 
           expect(true).to.equal(actual.completed);
           expect(185).to.equal(actual.day);
-          expect(index).to.equal(actual.tallyIndex);
           expect(BigInt("1000000000000000000")).to.equal(actual.votingAmounts[0]);
           expect(BigInt("1000000000000000000")).to.equal(actual.votingAmounts[1]);
           expect(BigInt("0")).to.equal(actual.votingAmounts[2]);
