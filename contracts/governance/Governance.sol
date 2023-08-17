@@ -340,7 +340,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         Proposal memory selectedPropose = getProposal(ipfsHash);
         Status status;
 
-        if (selectedPropose.endVotingDay < day) {
+        if (selectedPropose.endVotingDay <= day) {
             status = Status.CLOSE;
         } else if (day < selectedPropose.startVotingDay) {
             status = Status.BEFORE;

@@ -748,6 +748,28 @@ describe('GovernanceContract', () => {
         });
       });
 
+      context('When day is end voting day(finished)', async() => {
+        const day = 200;
+
+        beforeEach(async () => {
+          await _TimeContract.setCurrentTimeIndex(0);
+          await _GovernanceContract.connect(issueProposer).propose(
+            ipfsHash,
+            optionNumber,
+            BigInt(minimumStakingAmount),
+            multipleVote,
+            startVotingDay,
+            endVotingDay
+          );
+        });
+
+        it('Should return proposal status', async () => {
+          const actual = await _GovernanceContract.connect(voter1).getProposalStatus(ipfsHash, day);
+
+          expect(2).to.equal(actual);
+        });
+      });
+
       context('When day is 1(finished)', async() => {
         const day = 201;
 
