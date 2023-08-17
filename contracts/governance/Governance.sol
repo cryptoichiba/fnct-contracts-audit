@@ -656,7 +656,7 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
         Proposal memory selectedPropose = getProposal(ipfsHash);
 
         // Not execute tally if voting hasn't started yet
-        require(selectedPropose.startVotingDay <= today, "Governance: Proposal voting is not start");
+        require(selectedPropose.startVotingDay <= tallyDay, "Governance: Proposal voting is not start");
 
         uint256 recordCount = _getRecordCount(ipfsHash, amountVotesToTally, tallyDay);
 
