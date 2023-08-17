@@ -401,23 +401,21 @@ contract GovernanceContract is IGovernance, AccessControl, UnrenounceableOwnable
      * @param votingOptions          The voting options(selection).
      */
     function _checkVotingOptions(uint256[] memory votingOptions, uint256 optionNumber) internal pure returns(bool) {
-      uint256 length = votingOptions.length;
-      bool result = false;
+        uint256 length = votingOptions.length;
 
-      // Invalid if the number of voting options is greater than the number of propose options.
-      if (length > optionNumber) return false;
+        // Return true if length of votingOptions is zero(blank votes)
+        if (length == 0) return true;
 
-      if (length == 0) return true;
+        // Invalid if the number of voting options is greater than the number of propose options.
+        if (length > optionNumber) return false;
 
-      for ( uint256 i = 0; i < length; i++ ) {
-          if (votingOptions[i] <= 0) break;
+        // Iterate through the voting options and check if each option is valid.
+        // An option is valid if it is greater than 0 and does not exceed the maximum allowed option number.
+        for ( uint256 i = 0; i < length; i++ ) {
+            if (votingOptions[i] <= 0 || votingOptions[i] > optionNumber) return false;
+        }
 
-          if (i == length - 1) {
-              result = true;
-          }
-      }
-
-      return result;
+        return true;
     }
 
     /**
